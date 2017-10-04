@@ -1,0 +1,31 @@
+- config passing:
+    - pass whole config objects and let the managers pull out the config vs
+    - pass specific subsets of config and whole config objects vs
+    - just pass the specific subset of the config
+
+- entity drawing
+    - every entity draws themselves
+    - the map tells entities to draw themselves
+    - entities update their respective tiles and tell the map to draw all the tiles
+    - some other kind of manager draws both
+    - as of october 4th 2017, going with:
+        - mapmanager is no longer going to really be a thing
+          - well, it should be for clamping objects etc, and multiple maps
+        - rendermanager is going to draw a list of things that are registered with it
+        - entitymanager is going to issue updates to all entities and update their representations that are registered with the rendermanager
+        - entitymanager can get you the player entity and will call the player's update function, and maybe .. player manager won't even be a thing now
+        - a spec manager..? nah not yet
+        - so, steps:
+            - snapshot what I've got into a commit
+            - move spec loading into entity manager
+            - make a render manager
+            - move drawing from map manager into render manager
+            - make entity manager register entities with render manager
+            - make entity manager issue updates to renderer
+
+
+- context passing
+    - immediate execution + convoluted manager passage vs
+        - e.g. using an init method
+    - non-immediate execution + direct manager passage vs
+    - .. some wonderful third option?
