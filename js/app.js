@@ -2,7 +2,6 @@ let game = null,
   config = null;
 
 window.addEventListener("load", function () {
-  console.log('... uh');
   game_manager = GameManager("config.json");
   game_manager.start_game();
 });
@@ -10,7 +9,90 @@ window.addEventListener("load", function () {
 let ConfigManager = (function (url) {
   let config = null,
     // TODO: replace spec with ajax call to url
-    config_spec = '{"canvas_id": "canvas", "resource_url": "resources.json", "controls": null, "base_url": ""}';
+    config_spec = {
+      "canvas_id": "canvas",
+      "resource_url": "resources.json",
+      "controls": null,
+      "base_url": "",
+      "maps": [
+        {
+          "id": "some_map",
+          "player_layer": 2,
+          "layers": [
+            [
+              {
+                "id": "tile1",
+                "img": "grass",
+                "x_position": 0,
+                "y_position": 0,
+                "x_scale": 1,
+                "y_scale": 1,
+              },
+              {
+                "id": "tile2",
+                "img": "grass",
+                "x_position": 64,
+                "y_position": 0,
+                "x_scale": 1,
+                "y_scale": 1,
+              },
+              {
+                "id": "tile3",
+                "img": "water",
+                "x_position": 128,
+                "y_position": 0,
+                "x_scale": 1,
+                "y_scale": 1,
+              },
+              {
+                "id": "tile4",
+                "img": "dirt",
+                "x_position": 0,
+                "y_position": 64,
+                "x_scale": 1,
+                "y_scale": 1,
+              },
+              {
+                "id": "tile5",
+                "img": "dirt",
+                "x_position": 64,
+                "y_position": 64,
+                "x_scale": 1,
+                "y_scale": 1,
+              }
+            ],
+            [
+              {
+                "id": "tile4",
+                "img": "coin",
+                "x_position": 64,
+                "y_position": 0,
+                "x_scale": 1,
+                "y_scale": 1,
+              },
+              {
+                "id": "tile5",
+                "img": "coin",
+                "x_position": 64,
+                "y_position": 50,
+                "x_scale": 0.5,
+                "y_scale": 0.5,
+              }
+            ],
+            [
+              {
+                "id": "player",
+                "img": "player",
+                "x_position": 10,
+                "y_position": 10,
+                "x_scale": 1,
+                "y_scale": 1,
+              }
+            ]
+          ]
+        }
+      ]
+    };
     load = function (config_spec) {
       config = JSON.parse(config_spec);
       return config;
@@ -23,7 +105,8 @@ let ConfigManager = (function (url) {
       return config;
     };
 
-  config = load(config_spec);
+  //config = load(config_spec);
+  config = config_spec;
 
   return function () {
     return {
@@ -95,7 +178,11 @@ let ResourceManager = (function () {
                       "type": resource.type,
                       "id": resource.id,
                       "url": resource.url,
-                      "img": img
+                      "img": img,
+                      "source_x": resource.source_x,
+                      "source_y": resource.source_y,
+                      "source_width": resource.source_width,
+                      "source_height": resource.source_height,
                     });
                   }, false);
                   img.addEventListener("error", function () {
@@ -121,7 +208,7 @@ let ResourceManager = (function () {
           return resource;
         };
 
-      console.log(parse(list));
+      //console.log(parse(list));
       parsed_resources = parse(list)['resources'];
       for (parsed_index in parsed_resources) {
         resource = parsed_resources[parsed_index];
@@ -162,27 +249,47 @@ let ResourceManager = (function () {
           {
             "type": "image",
             "url": "resources/images/player.png",
-            "id": "player"
+            "id": "player",
+            "source_x": 0,
+            "source_y": 0,
+            "source_width": 26,
+            "source_height": 32,
           },
           {
             "type": "image",
             "url": "resources/images/dirt.png",
-            "id": "dirt"
+            "id": "dirt",
+            "source_x": 0,
+            "source_y": 0,
+            "source_width": 64,
+            "source_height": 64,
           },
           {
             "type": "image",
             "url": "resources/images/grass.png",
-            "id": "grass"
+            "id": "grass",
+            "source_x": 0,
+            "source_y": 0,
+            "source_width": 64,
+            "source_height": 64,
           },
           {
             "type": "image",
             "url": "resources/images/coin.png",
-            "id": "coin"
+            "id": "coin",
+            "source_x": 0,
+            "source_y": 0,
+            "source_width": 48,
+            "source_height": 48,
           },
           {
             "type": "image",
             "url": "resources/images/water.png",
-            "id": "water"
+            "id": "water",
+            "source_x": 0,
+            "source_y": 0,
+            "source_width": 64,
+            "source_height": 64,
           },
         ]
       };
@@ -237,13 +344,44 @@ let ControlManager = (function () {
 })();
 
 let MapManager = (function () {
-  let map = null,
-    context = null,
-    context_manager = null,
-    resources = null,
-    load_spec = function (map_url) {
-      return JSON.parse(map_url);
+  let maps = null,
+    build_map = function (id, layers, player_layer) {
+      return {
+        id: id,
+        layer_count: layers.length,
+        layers: layers,
+        player_layer: player_layer,
+      };
     },
+    update_player = function (player) {
+// may be useless
+    },
+    get_player = function () {
+// may be useless
+    },
+    get_map = function () {
+      return maps;
+    },
+    init = function (_maps) {
+      //spec = load_spec(map_url)['maps'][0];
+      maps = _maps;//build_map(spec.id, spec.layers, spec.player_layer);
+    };
+
+  return function (_maps) {
+    init(_maps);
+
+    console.log("Map manager init.");
+    return {
+      get_map: get_map,
+      update_player: update_player,
+      get_player: get_player,
+    };
+  };
+})();
+
+let RenderManager = (function () {
+  let context = null,
+    context_manager = null,
     set_context = function (passed_context) {
       context_manager = passed_context;
       context = passed_context.get_context();
@@ -263,8 +401,8 @@ let MapManager = (function () {
       //console.log('map is:');
       //console.log(map);
       player_on_map = map['layers'][player_layer][0]
-      player_on_map['dest_x'] = player.x_position;
-      player_on_map['dest_y'] = player.y_position;
+      player_on_map['x_position'] = player.x_position;
+      player_on_map['y_position'] = player.y_position;
     },
     get_player = function () {
       player_layer = map['player_layer'];
@@ -272,7 +410,7 @@ let MapManager = (function () {
       return player_on_map;
     },
     draw_map = function (_map, start_layer, end_layer) {
-      let layer_index = 0, tile_index = 0, tile = null;
+      let layer_index = 0, tile_index = 0, tile = null, resource = null;
 
       _map = _map || map;
       start_layer = start_layer || 0;
@@ -289,16 +427,18 @@ let MapManager = (function () {
           tile = _map.layers[layer_index][tile_index];
           //console.log("tile is" + tile);
           //debugger;
-          a = resources.get_image(tile.img);
+          resource = resources.get_image(tile.img);
           //console.log("LOOK HERE >>>>>>>>>>>");
           //console.log(tile.img);
-          if (a) {
+          if (resource) {
+            //debugger;
             context.drawImage(
-              a.img,
-              tile.source_x, tile.source_y,
-              tile.source_width, tile.source_height,
-              tile.dest_x, tile.dest_y,
-              tile.dest_width, tile.dest_height
+              resource.img,
+              resource.source_x, resource.source_y,
+              resource.source_width, resource.source_height,
+              tile.x_position, tile.y_position,
+              tile.x_scale * resource.source_width,
+              tile.y_scale * resource.source_height
             );
           } else {
             console.log("attempted to draw a resource that has not loaded.");
@@ -309,109 +449,11 @@ let MapManager = (function () {
     get_map = function () {
       return map;
     },
-    init = function (map_url, global_context, _resources) {
-      // TODO: make a real map -_-'
-      map_url_json = {
-        "maps": [
-          {
-            "id": "some_map",
-            "player_layer": 2,
-            "layers": [
-              [
-                {
-                  "id": "tile1",
-                  "img": "grass",
-                  "source_x": 0,
-                  "source_y": 0,
-                  "source_width": 64,
-                  "source_height": 64,
-                  "dest_x": 0,
-                  "dest_y": 0,
-                  "dest_width": 64,
-                  "dest_height": 64,
-                },
-                {
-                  "id": "tile2",
-                  "img": "grass",
-                  "source_x": 0,
-                  "source_y": 0,
-                  "source_width": 64,
-                  "source_height": 64,
-                  "dest_x": 64,
-                  "dest_y": 0,
-                  "dest_width": 64,
-                  "dest_height": 64,
-                },
-                {
-                  "id": "tile3",
-                  "img": "water",
-                  "source_x": 0,
-                  "source_y": 0,
-                  "source_width": 64,
-                  "source_height": 64,
-                  "dest_x": 64,
-                  "dest_y": 64,
-                  "dest_width": 64,
-                  "dest_height": 64,
-                },
-                {
-                  "id": "tile4",
-                  "img": "dirt",
-                  "source_x": 0,
-                  "source_y": 0,
-                  "source_width": 64,
-                  "source_height": 64,
-                  "dest_x": 0,
-                  "dest_y": 64,
-                  "dest_width": 64,
-                  "dest_height": 64,
-                }
-              ],
-              [
-                {
-                  "id": "tile4",
-                  "img": "coin",
-                  "source_x": 0,
-                  "source_y": 0,
-                  "source_width": 48,
-                  "source_height": 48,
-                  "dest_x": 50,
-                  "dest_y": 50,
-                  "dest_width": 48,
-                  "dest_height": 48,
-                },
-                {
-                  "id": "tile5",
-                  "img": "coin",
-                  "source_x": 0,
-                  "source_y": 0,
-                  "source_width": 48,
-                  "source_height": 48,
-                  "dest_x": 128,
-                  "dest_y": 64,
-                  "dest_width": 64,
-                  "dest_height": 64,
-                }
-              ],
-              [
-                {
-                  "id": "player",
-                  "img": "player",
-                  "source_x": 0,
-                  "source_y": 0,
-                  "source_width": 26,
-                  "source_height": 32,
-                  "dest_width": 26,
-                  "dest_height": 32,
-                }
-              ]
-            ]
-          }
-        ]
-      };
+    init = function (map_spec, global_context, _resources) {
       resources = _resources;
-      map_url = JSON.stringify(map_url_json);
-      spec = load_spec(map_url)['maps'][0];
+      //map_url = JSON.stringify(map_url_json);
+      //spec = load_spec(map_url)['maps'][0];
+      spec = map_spec[0];
       set_context(global_context);
       map = build_map(spec.id, spec.layers, spec.player_layer);
     };
@@ -419,7 +461,7 @@ let MapManager = (function () {
   return function (map_url, global_context, resources) {
     init(map_url, global_context, resources);
 
-    console.log("Map manager init.");
+    console.log("Render Manager init.");
     return {
       init: init,
       set_context: set_context,
@@ -439,6 +481,7 @@ let PlayerManager = (function () {
     controls = null,
     maps = null,
     entities = null,
+    render = null,
     set_entity_manager = function (em) {
       entities = em;
     },
@@ -479,8 +522,8 @@ let PlayerManager = (function () {
         player.y_velocity = -player.max_y_velocity;
       }
 
-      console.log("player's x velocity:");
-      console.log(player.x_velocity);
+      //console.log("player's x velocity:");
+      //console.log(player.x_velocity);
       player.x_position += delta * player.x_velocity;
       player.y_position += delta * player.y_velocity;
 
@@ -497,12 +540,12 @@ let PlayerManager = (function () {
       }
 
       //console.log("player before update:");
-      //console.log(maps.get_player()['dest_x']);
-      maps.update_player(player);
+      //console.log(render.get_player()['x_position']);
+      render.update_player(player);
       //console.log("player after update:");
-      //console.log(maps.get_player()['dest_x']);
+      //console.log(render.get_player()['x_position']);
     },
-    init = function (_config, _context, _resources, _controls, _maps) {
+    init = function (_config, _context, _resources, _controls, _maps, _render) {
       player = {
         'x_position': 10,
         'y_position': 10,
@@ -519,10 +562,11 @@ let PlayerManager = (function () {
       resources = _resources;
       controls = _controls;
       maps = _maps;
+      render = _render;
     }
 
-  return function (_config, _context, _resources, _controls, _maps) {
-    init(_config, _context, _resources, _controls, _maps);
+  return function (_config, _context, _resources, _controls, _maps, _render) {
+    init(_config, _context, _resources, _controls, _maps, _render);
     console.log("Player manager init.");
 
     return {
@@ -599,6 +643,7 @@ let FrameManager = (function () {
     maps = null,
     player = null,
     entities = null,
+    render = null,
     next_frame = function () {
       current_time = performance.now();
       delta = (current_time - last_time)/1000;
@@ -612,19 +657,20 @@ let FrameManager = (function () {
       entities.update(delta);
       player.update(delta);
 
-      maps.draw_map();
+      render.draw_map();
       requestAnimationFrame(next_frame);
     },
-    init = function (_config, _controls, _maps, _player, _entities) {
+    init = function (_config, _controls, _maps, _player, _entities, _render) {
       config = _config;
       controls = _controls;
       maps = _maps;
       player = _player;
       entities = _entities;
+      render = _render;
     };
 
-  return function (_config, _controls, _maps, _player, _entities) {
-    init(_config, _controls, _maps, _player, _entities);
+  return function (_config, _controls, _maps, _player, _entities, _render) {
+    init(_config, _controls, _maps, _player, _entities, _render);
     console.log("Frame manager init.");
 
     return {
@@ -634,7 +680,7 @@ let FrameManager = (function () {
 })();
 
 let GameManager = (function () {
-  console.log("trying to manage the game, here...");
+  //console.log("trying to manage the game, here...");
   let config_manager = null,
     config = null,
     context_manager = null,
@@ -662,17 +708,20 @@ let GameManager = (function () {
       context_manager = ContextManager(config.canvas_id),
       resource_manager = ResourceManager(config_manager),
       control_manager = ControlManager(config.controls);
-      map_manager = MapManager(
-        config.maps_url,
+      map_manager = MapManager(config.maps),
+      render_manager = RenderManager(
+        config.maps,
         context_manager,
         resource_manager
       ),
+// next up: make the arguments make sense and trace things through
       player_manager = PlayerManager(
         config.player,
         context_manager,
         resource_manager,
         control_manager,
         map_manager,
+        render_manager
       ),
       entity_manager = EntityManager(
         config.entity_url,
@@ -688,6 +737,7 @@ let GameManager = (function () {
         map_manager,
         player_manager,
         entity_manager,
+        render_manager
       );
 
       player_manager.set_entity_manager(entity_manager);
