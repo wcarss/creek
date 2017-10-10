@@ -87,6 +87,13 @@ let ConfigManager = (function (url) {
                 "y_position": 10,
                 "x_scale": 1,
                 "y_scale": 1,
+                'x_velocity': 0,
+                'y_velocity': 0,
+                'max_x_velocity': 250,
+                'max_y_velocity': 250,
+                'x_acceleration': 3.8,
+                'y_acceleration': 3.8,
+                'health': 10,
               }
             ]
           ]
@@ -353,12 +360,6 @@ let MapManager = (function () {
         player_layer: player_layer,
       };
     },
-    update_player = function (player) {
-// may be useless
-    },
-    get_player = function () {
-// may be useless
-    },
     get_map = function () {
       return maps;
     },
@@ -373,8 +374,6 @@ let MapManager = (function () {
     console.log("Map manager init.");
     return {
       get_map: get_map,
-      update_player: update_player,
-      get_player: get_player,
     };
   };
 })();
@@ -382,18 +381,7 @@ let MapManager = (function () {
 let PlayerManager = (function () {
   let player = null,
     config = null,
-    context = null,
-    resources = null,
     controls = null,
-    maps = null,
-    entities = null,
-    render = null,
-    set_entity_manager = function (em) {
-      entities = em;
-    },
-    set_render_manager = function (rm) {
-      render = rm;
-    },
     get_player = function () {
       return player;
     },
@@ -447,41 +435,19 @@ let PlayerManager = (function () {
       } else if (player.y_position < player.min_y_position) {
         player.y_position = player.min_y_position;
       }
-
-      //console.log("player before update:");
-      //console.log(render.get_player()['x_position']);
-      render.update_player(player);
-      //console.log("player after update:");
-      //console.log(render.get_player()['x_position']);
     },
-    init = function (_config, _context, _resources, _controls, _maps, _render) {
-      player = {
-        'x_position': 10,
-        'y_position': 10,
-        'x_velocity': 0,
-        'y_velocity': 0,
-        'max_x_velocity': 250,
-        'max_y_velocity': 250,
-        'x_acceleration': 3.8,
-        'y_acceleration': 3.8,
-        'health': 10,
-      };
+    init = function (_config, _controls) {
       config = _config;
-      context = _context;
-      resources = _resources;
+      player = config.maps[0]['layers'][_config.maps[0]['player_layer']][0];
       controls = _controls;
-      maps = _maps;
-      render = _render;
     };
 
-  return function (_config, _context, _resources, _controls, _maps, _render) {
-    init(_config, _context, _resources, _controls, _maps, _render);
+  return function (_config, _controls) {
+    init(_config, _controls);
     console.log("Player manager init.");
 
     return {
       get_player: get_player,
-      set_entity_manager: set_entity_manager,
-      set_render_manager: set_render_manager, // NEXT TODO: resolve this
       update: update
     };
   };
@@ -569,21 +535,6 @@ let RenderManager = (function () {
         player_layer: player_layer,
       };
     },
-    update_player = function (player) {
-      player_layer = map['player_layer'];
-      //console.log('player layer:');
-      //console.log(player_layer);
-      //console.log('map is:');
-      //console.log(map);
-      player_on_map = map['layers'][player_layer][0]
-      player_on_map['x_position'] = player.x_position;
-      player_on_map['y_position'] = player.y_position;
-    },
-    get_player = function () {
-      player_layer = map['player_layer'];
-      player_on_map = map['layers'][player_layer][0]
-      return player_on_map;
-    },
     draw_map = function (_map, start_layer, end_layer) {
       let layer_index = 0, tile_index = 0, tile = null, resource = null;
 
@@ -665,8 +616,6 @@ let RenderManager = (function () {
       set_context: set_context,
       draw_map: draw_map,
       get_map: get_map,
-      update_player: update_player,
-      get_player: get_player,
     };
   }
 })();
@@ -700,14 +649,7 @@ let GameManager = (function () {
       resource_manager = ResourceManager(config_manager),
       control_manager = ControlManager(config.controls);
       map_manager = MapManager(config.maps),
-
-      player_manager = PlayerManager(
-        config.player,
-        context_manager,
-        resource_manager,
-        control_manager,
-        map_manager
-      ),
+      player_manager = PlayerManager(config, control_manager),
       entity_manager = EntityManager(
         config.entity_url,
         context_manager,
@@ -724,8 +666,6 @@ let GameManager = (function () {
         player_manager,
         entity_manager,
       );
-      player_manager.set_entity_manager(entity_manager);
-      player_manager.set_render_manager(render_manager);
     };
 
   return function (_config_url) {
