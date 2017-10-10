@@ -379,100 +379,6 @@ let MapManager = (function () {
   };
 })();
 
-let RenderManager = (function () {
-  let context = null,
-    context_manager = null,
-    set_context = function (passed_context) {
-      context_manager = passed_context;
-      context = passed_context.get_context();
-    },
-    build_map = function (id, layers, player_layer) {
-      return {
-        id: id,
-        layer_count: layers.length,
-        layers: layers,
-        player_layer: player_layer,
-      };
-    },
-    update_player = function (player) {
-      player_layer = map['player_layer'];
-      //console.log('player layer:');
-      //console.log(player_layer);
-      //console.log('map is:');
-      //console.log(map);
-      player_on_map = map['layers'][player_layer][0]
-      player_on_map['x_position'] = player.x_position;
-      player_on_map['y_position'] = player.y_position;
-    },
-    get_player = function () {
-      player_layer = map['player_layer'];
-      player_on_map = map['layers'][player_layer][0]
-      return player_on_map;
-    },
-    draw_map = function (_map, start_layer, end_layer) {
-      let layer_index = 0, tile_index = 0, tile = null, resource = null;
-
-      _map = _map || map;
-      start_layer = start_layer || 0;
-      end_layer = end_layer || map.layer_count;
-
-      //console.log("map is:");
-      //console.log(_map);
-      //console.log("start_layer: " + start_layer);
-      //console.log("end_layer: " + end_layer);
-      //debugger;
-      for (layer_index = start_layer; layer_index < end_layer; layer_index++) {
-        //debugger;
-        for (tile_index = 0; tile_index < _map.layers[layer_index].length; tile_index++) {
-          tile = _map.layers[layer_index][tile_index];
-          //console.log("tile is" + tile);
-          //debugger;
-          resource = resources.get_image(tile.img);
-          //console.log("LOOK HERE >>>>>>>>>>>");
-          //console.log(tile.img);
-          if (resource) {
-            //debugger;
-            context.drawImage(
-              resource.img,
-              resource.source_x, resource.source_y,
-              resource.source_width, resource.source_height,
-              tile.x_position, tile.y_position,
-              tile.x_scale * resource.source_width,
-              tile.y_scale * resource.source_height
-            );
-          } else {
-            console.log("attempted to draw a resource that has not loaded.");
-          }
-        }
-      }
-    },
-    get_map = function () {
-      return map;
-    },
-    init = function (map_spec, global_context, _resources) {
-      resources = _resources;
-      //map_url = JSON.stringify(map_url_json);
-      //spec = load_spec(map_url)['maps'][0];
-      spec = map_spec[0];
-      set_context(global_context);
-      map = build_map(spec.id, spec.layers, spec.player_layer);
-    };
-
-  return function (map_url, global_context, resources) {
-    init(map_url, global_context, resources);
-
-    console.log("Render Manager init.");
-    return {
-      init: init,
-      set_context: set_context,
-      draw_map: draw_map,
-      get_map: get_map,
-      update_player: update_player,
-      get_player: get_player,
-    };
-  };
-})();
-
 let PlayerManager = (function () {
   let player = null,
     config = null,
@@ -484,6 +390,9 @@ let PlayerManager = (function () {
     render = null,
     set_entity_manager = function (em) {
       entities = em;
+    },
+    set_render_manager = function (rm) {
+      render = rm;
     },
     get_player = function () {
       return player;
@@ -563,7 +472,7 @@ let PlayerManager = (function () {
       controls = _controls;
       maps = _maps;
       render = _render;
-    }
+    };
 
   return function (_config, _context, _resources, _controls, _maps, _render) {
     init(_config, _context, _resources, _controls, _maps, _render);
@@ -572,6 +481,7 @@ let PlayerManager = (function () {
     return {
       get_player: get_player,
       set_entity_manager: set_entity_manager,
+      set_render_manager: set_render_manager, // NEXT TODO: resolve this
       update: update
     };
   };
@@ -590,14 +500,14 @@ let EntityManager = (function () {
     },
     get_entity = function (id) {
       return entity[id];
-    }
+    },
     update = function (delta) {
       for (index in entities) {
         entities[index].update(delta, maps);
       }
     },
     init = function (_config, _context, _resources, _controls, _maps, _player) {
-      updateable_entity = {
+      let updateable_entity = {
         x: 10,
         y: 10,
         x_vel: 0.1,
@@ -611,7 +521,7 @@ let EntityManager = (function () {
           e.x = x;
           e.y = y;
         }
-      }
+      };
       entities = {};
       config = _config;
       context = _context;
@@ -635,15 +545,85 @@ let EntityManager = (function () {
   };
 })();
 
-let FrameManager = (function () {
-  let last_time = performance.now(),
+let RenderManager = (function () {
+  let context = null,
+    context_manager = null,
+    last_time = performance.now(),
     current_time = performance.now(),
     config = null,
     controls = null,
-    maps = null,
     player = null,
     entities = null,
     render = null,
+    resources = null;
+
+    set_context = function (passed_context) {
+      context_manager = passed_context;
+      context = passed_context.get_context();
+    },
+    build_map = function (id, layers, player_layer) {
+      return {
+        id: id,
+        layer_count: layers.length,
+        layers: layers,
+        player_layer: player_layer,
+      };
+    },
+    update_player = function (player) {
+      player_layer = map['player_layer'];
+      //console.log('player layer:');
+      //console.log(player_layer);
+      //console.log('map is:');
+      //console.log(map);
+      player_on_map = map['layers'][player_layer][0]
+      player_on_map['x_position'] = player.x_position;
+      player_on_map['y_position'] = player.y_position;
+    },
+    get_player = function () {
+      player_layer = map['player_layer'];
+      player_on_map = map['layers'][player_layer][0]
+      return player_on_map;
+    },
+    draw_map = function (_map, start_layer, end_layer) {
+      let layer_index = 0, tile_index = 0, tile = null, resource = null;
+
+      _map = _map || map;
+      start_layer = start_layer || 0;
+      end_layer = end_layer || map.layer_count;
+
+      //console.log("map is:");
+      //console.log(_map);
+      //console.log("start_layer: " + start_layer);
+      //console.log("end_layer: " + end_layer);
+      //debugger;
+      for (layer_index = start_layer; layer_index < end_layer; layer_index++) {
+        //debugger;
+        for (tile_index = 0; tile_index < _map.layers[layer_index].length; tile_index++) {
+          tile = _map.layers[layer_index][tile_index];
+          //console.log("tile is" + tile);
+          //debugger;
+          resource = resources.get_image(tile.img);
+          //console.log("LOOK HERE >>>>>>>>>>>");
+          //console.log(tile.img);
+          if (resource) {
+            //debugger;
+            context.drawImage(
+              resource.img,
+              resource.source_x, resource.source_y,
+              resource.source_width, resource.source_height,
+              tile.x_position, tile.y_position,
+              tile.x_scale * resource.source_width,
+              tile.y_scale * resource.source_height
+            );
+          } else {
+            console.log("attempted to draw a resource that has not loaded.");
+          }
+        }
+      }
+    },
+    get_map = function () {
+      return map;
+    },
     next_frame = function () {
       current_time = performance.now();
       delta = (current_time - last_time)/1000;
@@ -657,24 +637,36 @@ let FrameManager = (function () {
       entities.update(delta);
       player.update(delta);
 
-      render.draw_map();
+      draw_map();
       requestAnimationFrame(next_frame);
     },
-    init = function (_config, _controls, _maps, _player, _entities, _render) {
+    init = function (_config, global_context, _resources, _controls, _player, _entities) {
+      console.log("ninit running.");
+      set_context(global_context);
       config = _config;
+      spec = _config['maps'][0];
+      map = build_map(spec.id, spec.layers, spec.player_layer);
+      //map_url = JSON.stringify(map_url_json);
+      //spec = load_spec(map_url)['maps'][0];
+      resources = _resources;
       controls = _controls;
-      maps = _maps;
       player = _player;
       entities = _entities;
-      render = _render;
     };
 
-  return function (_config, _controls, _maps, _player, _entities, _render) {
-    init(_config, _controls, _maps, _player, _entities, _render);
-    console.log("Frame manager init.");
+  return function (_config, global_context, _resources, _controls, _player, _entities) {
+    console.log('config in RenderManager is ');
+    console.log(_config);
+    init(_config, global_context, _resources, _controls, _player, _entities);
+    console.log("Render manager init.");
 
     return {
-      next_frame: next_frame
+      next_frame: next_frame,
+      set_context: set_context,
+      draw_map: draw_map,
+      get_map: get_map,
+      update_player: update_player,
+      get_player: get_player,
     };
   }
 })();
@@ -689,10 +681,9 @@ let GameManager = (function () {
     map_manager = null,
     player_manager = null,
     entity_manager = null,
-    frame_manager = null,
     start = function () {
       console.log("the loop would now begin.");
-      frame_manager.next_frame();
+      render_manager.next_frame();
       /* probably the contents of next_frame:
         control_manager.update_controls();
         dt = self.track_time();
@@ -709,19 +700,13 @@ let GameManager = (function () {
       resource_manager = ResourceManager(config_manager),
       control_manager = ControlManager(config.controls);
       map_manager = MapManager(config.maps),
-      render_manager = RenderManager(
-        config.maps,
-        context_manager,
-        resource_manager
-      ),
-// next up: make the arguments make sense and trace things through
+
       player_manager = PlayerManager(
         config.player,
         context_manager,
         resource_manager,
         control_manager,
-        map_manager,
-        render_manager
+        map_manager
       ),
       entity_manager = EntityManager(
         config.entity_url,
@@ -731,16 +716,16 @@ let GameManager = (function () {
         map_manager,
         player_manager,
       ),
-      frame_manager = FrameManager(
-        config.frame_manager,
+      render_manager = RenderManager(
+        config,
+        context_manager,
+        resource_manager,
         control_manager,
-        map_manager,
         player_manager,
         entity_manager,
-        render_manager
       );
-
       player_manager.set_entity_manager(entity_manager);
+      player_manager.set_render_manager(render_manager);
     };
 
   return function (_config_url) {
