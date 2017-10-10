@@ -489,6 +489,47 @@ let EntityManager = (function () {
         }
       };
       entities = {};
+
+/*
+ * okay so here's where you're at:
+ *
+ * the entity manager is most useful right now for calling update
+ * on every entity, or perhaps on every member of specific classes
+ * of entities.
+ *
+ * It isn't .. actually doing that yet! Because you have no updating
+ * entities. Right now the RenderManager is manually walking the
+ * map-layer structure to get information about everything in there,
+ * and drawing them directly, and then saying "hey entities, do your
+ * updates", and the entity list is just empty.
+ *
+ * Ideally, the entities can be stored in an easy-to-specify format,
+ * which can then be loaded into a common data store for the app,
+ * which the entity manager will write to when it calls update,
+ * and the render manager will read from when it calls draw.
+ *
+ * This makes me think that a "mark as dirty" and "get draw list"
+ * and stuff might be plausible. The render manager can just ask
+ * the entity manager for the list of drawables and call draw on
+ * them passing the context they should draw on, while they know
+ * how to draw themselves and the manager knows how to compose the
+ * list of things-to-draw.
+ *
+ * The render manager can also ask the entity manager to issue updates
+ * to whatever needs updates, and it can sort its own priorities out
+ * internally e.g. always update the player, only update the monsters
+ * or menus that need updating right now, etc. Mayyyyybe it would scope
+ * that down to the "active map". Hm.
+ *
+ * Food for thought! When you come back, look at having the entity manager
+ * hold the common truth and present a draw-list and update-list or something.
+ *
+ * After that, look at finding ways to make that list more sensible?
+ * Or simplifications?
+ * Or figure out what's up with the framerate/delta stuff, as the timing just seems off
+ * Or try building a little map and specifying some entities.
+ */
+
       config = _config;
       context = _context;
       resources = _resources;
