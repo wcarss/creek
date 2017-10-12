@@ -591,6 +591,7 @@ let RenderManager = (function () {
     next_frame = function () {
       current_time = performance.now();
       delta = (current_time - last_time)/1000;
+      delta *= 40;
       last_time = current_time;
       //console.log("frame out! delta " + delta);
       //console.log("control state: ");
