@@ -77,6 +77,28 @@ let ConfigManager = (function (url) {
                 "y_position": 50,
                 "x_scale": 0.5,
                 "y_scale": 0.5,
+                "x_velocity": 10,
+                "y_velocity": 10,
+                "max_x_velocity": 10,
+                "max_y_velocity": 10,
+                "x_acceleration": 2,
+                "y_acceleration": 2,
+                "value": 1,
+                "flip": 1,
+                "update": function (delta) {
+                  this.last_x = this.x_position;
+                  this.last_y = this.y_position;
+                  this.x_position += this.x_velocity * delta;
+                  this.y_position += this.y_velocity * delta;
+                  this.x_velocity *= 0.8;
+                  this.y_velocity *= 0.8;
+                  if (Math.abs(this.last_x - this.x_position) < 0.01) {
+                    this.flip *= -1;
+                    this.x_velocity = this.max_x_velocity * this.flip;
+                    this.y_velocity = this.max_y_velocity * this.flip;
+                  }
+                  //console.log("coin x position:" + this.x_position);
+                }
               }
             ],
             [
@@ -89,10 +111,10 @@ let ConfigManager = (function (url) {
                 "y_scale": 1,
                 'x_velocity': 0,
                 'y_velocity': 0,
-                'max_x_velocity': 250,
-                'max_y_velocity': 250,
-                'x_acceleration': 3.8,
-                'y_acceleration': 3.8,
+                'max_x_velocity': 12,
+                'max_y_velocity': 12,
+                'x_acceleration': 1.8,
+                'y_acceleration': 1.8,
                 'health': 10,
               }
             ]
@@ -352,16 +374,22 @@ let ControlManager = (function () {
 
 let MapManager = (function () {
   let maps = null,
-    build_map = function (id, layers, player_layer) {
-      return {
-        id: id,
-        layer_count: layers.length,
-        layers: layers,
-        player_layer: player_layer,
-      };
+    current_map_id = null,
+    get_current_map = function () {
+      return maps[current_map_id];
     },
-    get_map = function () {
-      return maps;
+    get_player = function () {
+      let current_map = maps[current_map_id],
+        player_layer = current_map.player_layer;
+      return current_map[player_layer][0];
+    },
+    get_entities = function (map_id) {
+      map_id = map_id || current_map_id;
+      return maps[current_map_id].layers;
+    },
+    get_map = function (map_id) {
+      map_id = map_id || current_map_id;
+      return maps[map_id];
     },
     init = function (_maps) {
       //spec = load_spec(map_url)['maps'][0];
@@ -464,12 +492,34 @@ let EntityManager = (function () {
     get_entities = function () {
       return entities;
     },
+    get_draw_list = function () {
+      let _map = entities,
+        start_layer = 0,
+        end_layer = _map.layers.length;
+        draw_list = [];
+
+      for (layer_index = start_layer; layer_index < end_layer; layer_index++) {
+        for (tile_index = 0; tile_index < _map.layers[layer_index].length; tile_index++) {
+          tile = _map.layers[layer_index][tile_index];
+          //console.log("tile is" + tile);
+          resource = resources.get_image(tile.img);
+          //console.log("LOOK HERE >>>>>>>>>>>");
+          //console.log(tile.img);
+          draw_list.push(tile);
+        }
+      }
+      return draw_list;
+    },
     get_entity = function (id) {
       return entity[id];
     },
     update = function (delta) {
-      for (index in entities) {
-        entities[index].update(delta, maps);
+      let e = get_draw_list();
+      //debugger;
+      for (i in e) {
+        if (e[i].update) {
+          e[i].update(delta);
+        }
       }
     },
     init = function (_config, _context, _resources, _controls, _maps, _player) {
@@ -488,56 +538,12 @@ let EntityManager = (function () {
           e.y = y;
         }
       };
-      entities = {};
-
-/*
- * okay so here's where you're at:
- *
- * the entity manager is most useful right now for calling update
- * on every entity, or perhaps on every member of specific classes
- * of entities.
- *
- * It isn't .. actually doing that yet! Because you have no updating
- * entities. Right now the RenderManager is manually walking the
- * map-layer structure to get information about everything in there,
- * and drawing them directly, and then saying "hey entities, do your
- * updates", and the entity list is just empty.
- *
- * Ideally, the entities can be stored in an easy-to-specify format,
- * which can then be loaded into a common data store for the app,
- * which the entity manager will write to when it calls update,
- * and the render manager will read from when it calls draw.
- *
- * This makes me think that a "mark as dirty" and "get draw list"
- * and stuff might be plausible. The render manager can just ask
- * the entity manager for the list of drawables and call draw on
- * them passing the context they should draw on, while they know
- * how to draw themselves and the manager knows how to compose the
- * list of things-to-draw.
- *
- * The render manager can also ask the entity manager to issue updates
- * to whatever needs updates, and it can sort its own priorities out
- * internally e.g. always update the player, only update the monsters
- * or menus that need updating right now, etc. Mayyyyybe it would scope
- * that down to the "active map". Hm.
- *
- * Food for thought! When you come back, look at having the entity manager
- * hold the common truth and present a draw-list and update-list or something.
- *
- * After that, look at finding ways to make that list more sensible?
- * Or simplifications?
- * Or figure out what's up with the framerate/delta stuff, as the timing just seems off
- * Or try building a little map and specifying some entities.
- */
-
+      entities = _config.maps[0];
       config = _config;
       context = _context;
       resources = _resources;
       controls = _controls;
       maps = _maps;
-      for (entity_index in entities) {
-        maps.register_entity(entities[entity_index]);
-      }
       player = _player;
     };
 
@@ -547,6 +553,7 @@ let EntityManager = (function () {
 
     return {
       get_entities: get_entities,
+      get_draw_list: get_draw_list,
       update: update
     };
   };
@@ -568,53 +575,18 @@ let RenderManager = (function () {
       context_manager = passed_context;
       context = passed_context.get_context();
     },
-    build_map = function (id, layers, player_layer) {
-      return {
-        id: id,
-        layer_count: layers.length,
-        layers: layers,
-        player_layer: player_layer,
-      };
-    },
-    draw_map = function (_map, start_layer, end_layer) {
-      let layer_index = 0, tile_index = 0, tile = null, resource = null;
-
-      _map = _map || map;
-      start_layer = start_layer || 0;
-      end_layer = end_layer || map.layer_count;
-
-      //console.log("map is:");
-      //console.log(_map);
-      //console.log("start_layer: " + start_layer);
-      //console.log("end_layer: " + end_layer);
-      //debugger;
-      for (layer_index = start_layer; layer_index < end_layer; layer_index++) {
-        //debugger;
-        for (tile_index = 0; tile_index < _map.layers[layer_index].length; tile_index++) {
-          tile = _map.layers[layer_index][tile_index];
-          //console.log("tile is" + tile);
-          //debugger;
-          resource = resources.get_image(tile.img);
-          //console.log("LOOK HERE >>>>>>>>>>>");
-          //console.log(tile.img);
-          if (resource) {
-            //debugger;
-            context.drawImage(
-              resource.img,
-              resource.source_x, resource.source_y,
-              resource.source_width, resource.source_height,
-              tile.x_position, tile.y_position,
-              tile.x_scale * resource.source_width,
-              tile.y_scale * resource.source_height
-            );
-          } else {
-            console.log("attempted to draw a resource that has not loaded.");
-          }
-        }
+    draw = function (tile, context, delta) {
+      resource = resources.get_image(tile.img);
+      if (resource) {
+        context.drawImage(
+          resource.img,
+          resource.source_x, resource.source_y,
+          resource.source_width, resource.source_height,
+          tile.x_position, tile.y_position,
+          tile.x_scale * resource.source_width,
+          tile.y_scale * resource.source_height
+        );
       }
-    },
-    get_map = function () {
-      return map;
     },
     next_frame = function () {
       current_time = performance.now();
@@ -626,20 +598,20 @@ let RenderManager = (function () {
         //console.log(controls.get_controls());
       //}
 
-      entities.update(delta);
+      draw_list = entities.get_draw_list();
+      for (i in draw_list) {
+        draw(draw_list[i], context, delta);
+      }
       player.update(delta);
+      entities.update(delta);
 
-      draw_map();
       requestAnimationFrame(next_frame);
     },
     init = function (_config, global_context, _resources, _controls, _player, _entities) {
-      console.log("ninit running.");
+      console.log("init running.");
       set_context(global_context);
       config = _config;
       spec = _config['maps'][0];
-      map = build_map(spec.id, spec.layers, spec.player_layer);
-      //map_url = JSON.stringify(map_url_json);
-      //spec = load_spec(map_url)['maps'][0];
       resources = _resources;
       controls = _controls;
       player = _player;
@@ -647,16 +619,12 @@ let RenderManager = (function () {
     };
 
   return function (_config, global_context, _resources, _controls, _player, _entities) {
-    console.log('config in RenderManager is ');
-    console.log(_config);
     init(_config, global_context, _resources, _controls, _player, _entities);
     console.log("Render manager init.");
 
     return {
       next_frame: next_frame,
       set_context: set_context,
-      draw_map: draw_map,
-      get_map: get_map,
     };
   }
 })();
@@ -692,7 +660,7 @@ let GameManager = (function () {
       map_manager = MapManager(config.maps),
       player_manager = PlayerManager(config, control_manager),
       entity_manager = EntityManager(
-        config.entity_url,
+        config,
         context_manager,
         resource_manager,
         control_manager,
