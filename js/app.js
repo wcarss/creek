@@ -11,9 +11,26 @@ let ConfigManager = (function (url) {
     // TODO: replace spec with ajax call to url
     config_spec = {
       "canvas_id": "canvas",
+      "frames_per_second": 40,
       "resource_url": "resources.json",
       "controls": null,
       "base_url": "",
+      "player": {
+        "id": "player",
+        "img": "player",
+        "x_position": 10,
+        "y_position": 10,
+        "x_scale": 1,
+        "y_scale": 1,
+        'x_velocity': 0,
+        'y_velocity': 0,
+        'max_x_velocity': 12,
+        'max_y_velocity': 12,
+        'x_acceleration': 1.8,
+        'y_acceleration': 1.8,
+        'health': 10,
+      },
+      "initial_map_id": 0,
       "maps": [
         {
           "id": "some_map",
@@ -97,25 +114,7 @@ let ConfigManager = (function (url) {
                     this.x_velocity = this.max_x_velocity * this.flip;
                     this.y_velocity = this.max_y_velocity * this.flip;
                   }
-                  //console.log("coin x position:" + this.x_position);
                 }
-              }
-            ],
-            [
-              {
-                "id": "player",
-                "img": "player",
-                "x_position": 10,
-                "y_position": 10,
-                "x_scale": 1,
-                "y_scale": 1,
-                'x_velocity': 0,
-                'y_velocity': 0,
-                'max_x_velocity': 12,
-                'max_y_velocity': 12,
-                'x_acceleration': 1.8,
-                'y_acceleration': 1.8,
-                'health': 10,
               }
             ]
           ]
@@ -132,15 +131,22 @@ let ConfigManager = (function (url) {
     set = function (k, v) {
       config[k] = v;
       return config;
+    },
+    get_player = function () {
+      return config.player;
+    },
+    get_maps = function () {
+      return config.maps;
     };
 
-  //config = load(config_spec);
   config = config_spec;
 
   return function () {
     return {
       get_config: get,
       set_config: set,
+      get_player: get_player,
+      get_maps: get_maps,
     };
   };
 })();
@@ -163,16 +169,14 @@ let ContextManager = (function () {
       context = canvas.getContext("2d");
       return canvas;
     },
-    init = function (id) {
-      console.log(id);
-      let el = document.getElementById(id);
-    //  debugger;
-      console.log(el);
-      set_canvas(el);
+    init = function (config) {
+      let id = config.get_config()['canvas_id'];
+      set_canvas(document.getElementById(id));
     };
 
-  return function (_id) {
-    init(_id);
+  return function (config) {
+    init(config);
+    console.log("ContextManager init.");
 
     return {
       get_context: get_context,
@@ -181,10 +185,10 @@ let ContextManager = (function () {
       set_canvas: set_canvas,
     };
   };
-})()
+})();
 
 let ResourceManager = (function () {
-  let config = null,
+  let image_base_url = null,
     resources = {
       'image': {},
       'sound': {},
@@ -193,8 +197,6 @@ let ResourceManager = (function () {
       return JSON.parse(in_file);
     },
     load = function (list) {
-      console.log("resources here is");
-      console.log(resources);
       let promises = [],
         load_resource = function (resource) {
           let load_image = function (resource) {
@@ -220,11 +222,7 @@ let ResourceManager = (function () {
                   }, false);
                 }
               );
-            url = resource.url;
-            if (config.get_config().image_base_url) {
-              url = config.get_config().image_base_url;
-            }
-            img.src = url;
+            img.src = resource.url;
             return promise;
           };
 
@@ -237,21 +235,16 @@ let ResourceManager = (function () {
           return resource;
         };
 
-      //console.log(parse(list));
       parsed_resources = parse(list)['resources'];
       for (parsed_index in parsed_resources) {
         resource = parsed_resources[parsed_index];
-        console.log(resource);
         promises.push(load_resource(resource));
       }
 
       Promise.all(promises).then(
         function (loaded) {
-          console.log("resources loaded.");
           for (resource_index in loaded) {
             resource = loaded[resource_index];
-            console.log("loaded this resource:");
-            console.log(resource);
             resources[resource.type][resource.id] = resource;
           }
           console.log("resources after load are:");
@@ -265,13 +258,10 @@ let ResourceManager = (function () {
       return resources;
     },
     get_image = function (name) {
-      //debugger;
       return resources['image'][name];
     },
-    init = function (_config) {
-      config = _config;
+    init = function (config) {
       // TODO: use url to get list
-      // TODO: before even that, get *any image* here
       // url = config.get_config().resources.url
       url = {"resources":
         [
@@ -326,11 +316,10 @@ let ResourceManager = (function () {
     };
 
 
-  return function (_config) {
-    init(_config);
-    //debugger;
+  return function (config) {
+    init(config);
+    console.log("ResourceManager init.");
 
-    console.log("resource manager init'd");
     return {
       load: load,
       get_resources: get_resources,
@@ -364,7 +353,7 @@ let ControlManager = (function () {
 
   return function (_config) {
     init(_config);
-    console.log("control manager init.");
+    console.log("ControlManager init.");
 
     return {
       get_controls: get_controls
@@ -375,49 +364,55 @@ let ControlManager = (function () {
 let MapManager = (function () {
   let maps = null,
     current_map_id = null,
-    get_current_map = function () {
-      return maps[current_map_id];
-    },
-    get_player = function () {
-      let current_map = maps[current_map_id],
-        player_layer = current_map.player_layer;
-      return current_map[player_layer][0];
-    },
     get_entities = function (map_id) {
       map_id = map_id || current_map_id;
-      return maps[current_map_id].layers;
+      return maps[map_id].layers;
+    },
+    get_current_map_id = function () {
+      return current_map_id;
     },
     get_map = function (map_id) {
       map_id = map_id || current_map_id;
       return maps[map_id];
     },
-    init = function (_maps) {
-      //spec = load_spec(map_url)['maps'][0];
-      maps = _maps;//build_map(spec.id, spec.layers, spec.player_layer);
+    change_maps = function (map_id) {
+      current_map_id = map_id;
+    },
+    init = function (config) {
+      maps = config.get_maps();
+      current_map_id = config.get_config()['initial_map_id'];
     };
 
-  return function (_maps) {
-    init(_maps);
+  return function (_config) {
+    init(_config);
+    console.log("MapManager init.");
 
-    console.log("Map manager init.");
     return {
+      get_entities: get_entities,
       get_map: get_map,
+      get_current_map_id: get_current_map_id,
     };
   };
 })();
 
 let PlayerManager = (function () {
   let player = null,
-    config = null,
     controls = null,
     get_player = function () {
       return player;
     },
+    get_tile = function () {
+      return {
+          "id": player.id,
+          "img": player.img,
+          "x_position": player.x_position,
+          "y_position": player.y_position,
+          "x_scale": player.x_scale,
+          "y_scale": player.y_scale,
+      };
+    },
     update = function (delta) {
-      //console.log("updating the player by " + delta);
       keys = controls.get_controls();
-      //console.log("keys is:");
-      //console.log(keys);
 
       if (keys['KeyW'] || keys['ArrowUp']) {
         player.y_velocity -= player.y_acceleration;
@@ -464,18 +459,18 @@ let PlayerManager = (function () {
         player.y_position = player.min_y_position;
       }
     },
-    init = function (_config, _controls) {
-      config = _config;
-      player = config.maps[0]['layers'][_config.maps[0]['player_layer']][0];
+    init = function (config, _controls) {
+      player = config.get_player(),
       controls = _controls;
     };
 
-  return function (_config, _controls) {
-    init(_config, _controls);
-    console.log("Player manager init.");
+  return function (config, _controls) {
+    init(config, _controls);
+    console.log("PlayerManager init.");
 
     return {
       get_player: get_player,
+      get_tile: get_tile,
       update: update
     };
   };
@@ -483,77 +478,64 @@ let PlayerManager = (function () {
 
 let EntityManager = (function () {
   let entities = null,
-    config = null,
-    context = null,
-    resources = null,
+    player = null,
     controls = null,
     maps = null,
-    player = null,
+    current_map_id = null,
+    stale_entities = function () {
+      return current_map_id != maps.get_current_map_id();
+    },
     get_entities = function () {
       return entities;
     },
-    get_draw_list = function () {
-      let _map = entities,
-        start_layer = 0,
-        end_layer = _map.layers.length;
-        draw_list = [];
+    setup_entities = function () {
+      let current_map = maps.get_map(),
+        layers = current_map.layers;
 
-      for (layer_index = start_layer; layer_index < end_layer; layer_index++) {
-        for (tile_index = 0; tile_index < _map.layers[layer_index].length; tile_index++) {
-          tile = _map.layers[layer_index][tile_index];
-          //console.log("tile is" + tile);
-          resource = resources.get_image(tile.img);
-          //console.log("LOOK HERE >>>>>>>>>>>");
-          //console.log(tile.img);
-          draw_list.push(tile);
+      current_map_id = current_map.id;
+      entities = [];
+
+      // paste the player layer into the correct spot
+      layers.splice(current_map.player_layer, 0, [player.get_tile()]);
+
+      // build entities by iterating over layers
+      for (i in layers) {
+        for (j in layers[i]) {
+          entities.push(layers[i][j]);
         }
       }
-      return draw_list;
-    },
-    get_entity = function (id) {
-      return entity[id];
+
+      // pull player tile in its layer back out of stored map data
+      layers.splice(current_map.player_layer, 1);
     },
     update = function (delta) {
-      let e = get_draw_list();
-      //debugger;
-      for (i in e) {
-        if (e[i].update) {
-          e[i].update(delta);
+      if (stale_entities()) {
+        setup_entities();
+      }
+
+      for (i in entities) {
+        if (entities[i].update) {
+          entities[i].update(delta);
         }
       }
+
+      player.update(delta);
     },
-    init = function (_config, _context, _resources, _controls, _maps, _player) {
-      let updateable_entity = {
-        x: 10,
-        y: 10,
-        x_vel: 0.1,
-        y_vel: 0.1,
-        id: "test",
-        image: _resources.get_image('player'),
-        update: function (delta, maps) {
-          x += x_vel * delta;
-          y += y_vel * delta;
-          e = maps.get_entity('test');
-          e.x = x;
-          e.y = y;
-        }
-      };
-      entities = _config.maps[0];
-      config = _config;
-      context = _context;
-      resources = _resources;
+    init = function (_controls, _player, _maps) {
       controls = _controls;
-      maps = _maps;
       player = _player;
+      maps = _maps;
+      setup_entities();
     };
 
-  return function (_config, _context, _resources, _controls, _maps, _player) {
-    init(_config, _context, _resources, _controls, _maps, _player);
-    console.log("Entity manager init.");
+  return function (_controls, _player, _maps) {
+    init(_controls, _player, _maps);
+    console.log("EntityManager init.");
 
     return {
       get_entities: get_entities,
-      get_draw_list: get_draw_list,
+      stale_entities: stale_entities,
+      setup_entities: setup_entities,
       update: update
     };
   };
@@ -562,13 +544,10 @@ let EntityManager = (function () {
 let RenderManager = (function () {
   let context = null,
     context_manager = null,
+    frames_per_second = null,
     last_time = performance.now(),
     current_time = performance.now(),
-    config = null,
-    controls = null,
-    player = null,
     entities = null,
-    render = null,
     resources = null;
 
     set_context = function (passed_context) {
@@ -576,7 +555,7 @@ let RenderManager = (function () {
       context = passed_context.get_context();
     },
     draw = function (tile, context, delta) {
-      resource = resources.get_image(tile.img);
+      let resource = resources.get_image(tile.img);
       if (resource) {
         context.drawImage(
           resource.img,
@@ -590,38 +569,27 @@ let RenderManager = (function () {
     },
     next_frame = function () {
       current_time = performance.now();
-      delta = (current_time - last_time)/1000;
-      delta *= 40;
+      let delta = ((current_time - last_time)/1000) * frames_per_second;
       last_time = current_time;
-      //console.log("frame out! delta " + delta);
-      //console.log("control state: ");
-      //if (controls.get_controls()) {
-        //console.log(controls.get_controls());
-      //}
 
-      draw_list = entities.get_draw_list();
+      draw_list = entities.get_entities();
       for (i in draw_list) {
         draw(draw_list[i], context, delta);
       }
-      player.update(delta);
       entities.update(delta);
 
       requestAnimationFrame(next_frame);
     },
-    init = function (_config, global_context, _resources, _controls, _player, _entities) {
-      console.log("init running.");
+    init = function (config, global_context, _resources, _entities) {
       set_context(global_context);
-      config = _config;
-      spec = _config['maps'][0];
+      frames_per_second = config.get_config()['frames_per_second'];
       resources = _resources;
-      controls = _controls;
-      player = _player;
       entities = _entities;
     };
 
-  return function (_config, global_context, _resources, _controls, _player, _entities) {
-    init(_config, global_context, _resources, _controls, _player, _entities);
-    console.log("Render manager init.");
+  return function (config, global_context, _resources, _entities) {
+    init(config, global_context, _resources, _entities);
+    console.log("RenderManager init.");
 
     return {
       next_frame: next_frame,
@@ -631,59 +599,47 @@ let RenderManager = (function () {
 })();
 
 let GameManager = (function () {
-  //console.log("trying to manage the game, here...");
   let config_manager = null,
-    config = null,
+    control_manager = null,
+    player_manager = null,
+    map_manager = null,
+    entity_manager = null,
     context_manager = null,
     resource_manager = null,
-    control_manager = null,
-    map_manager = null,
-    player_manager = null,
-    entity_manager = null,
-    start = function () {
+    render_manager = null,
+
+    start_game = function () {
       console.log("the loop would now begin.");
       render_manager.next_frame();
-      /* probably the contents of next_frame:
-        control_manager.update_controls();
-        dt = self.track_time();
-        entity_manager.update(dt);
-        player_manager.update(dt);
-        map_manager.draw();
-        requestAnimationFrame();
-      */
     },
-    init = function (_config_url) {
-      config_manager = ConfigManager(_config_url),
-      config = config_manager.get_config(),
-      context_manager = ContextManager(config.canvas_id),
-      resource_manager = ResourceManager(config_manager),
-      control_manager = ControlManager(config.controls);
-      map_manager = MapManager(config.maps),
-      player_manager = PlayerManager(config, control_manager),
+    init = function (config_url) {
+      config_manager = ConfigManager(config_url),
+
+      control_manager = ControlManager();
+      player_manager = PlayerManager(config_manager, control_manager),
+      map_manager = MapManager(config_manager),
       entity_manager = EntityManager(
-        config,
-        context_manager,
-        resource_manager,
         control_manager,
-        map_manager,
         player_manager,
+        map_manager
       ),
+
+      context_manager = ContextManager(config_manager),
+      resource_manager = ResourceManager(config_manager),
       render_manager = RenderManager(
-        config,
+        config_manager,
         context_manager,
         resource_manager,
-        control_manager,
-        player_manager,
         entity_manager,
       );
     };
 
-  return function (_config_url) {
-    init(_config_url);
-    console.log("Game manager init.");
+  return function (config_url) {
+    init(config_url);
+    console.log("GameManager init.");
 
     return {
-      start_game: start
+      start_game: start_game
     };
   };
 })();
