@@ -9,6 +9,8 @@ window.addEventListener("load", function () {
 let ConfigManager = (function (url) {
   let config = null,
     // TODO: replace spec with ajax call to url
+    // TODO: or, just put the spec at a location and put it in a script tag
+    // it may be time to break these managers up anyway
     config_spec = {
       "canvas_id": "canvas",
       "frames_per_second": 40,
@@ -16,19 +18,22 @@ let ConfigManager = (function (url) {
       "controls": null,
       "base_url": "",
       "player": {
-        "id": "player",
+        "id": "player1",
         "img": "player",
         "x_position": 10,
         "y_position": 10,
         "x_scale": 1,
         "y_scale": 1,
-        'x_velocity': 0,
-        'y_velocity': 0,
-        'max_x_velocity': 12,
-        'max_y_velocity': 12,
-        'x_acceleration': 1.8,
-        'y_acceleration': 1.8,
-        'health': 10,
+        "x_size": 26,
+        "y_size": 32,
+        "x_velocity": 0,
+        "y_velocity": 0,
+        "max_x_velocity": 12,
+        "max_y_velocity": 12,
+        "x_acceleration": 1.8,
+        "y_acceleration": 1.8,
+        "health": 10,
+        "score": 0,
       },
       "initial_map_id": 0,
       "maps": [
@@ -38,62 +43,76 @@ let ConfigManager = (function (url) {
           "layers": [
             [
               {
-                "id": "tile1",
+                "id": "grass1",
                 "img": "grass",
                 "x_position": 0,
                 "y_position": 0,
                 "x_scale": 1,
                 "y_scale": 1,
+                "x_size": 64,
+                "y_size": 64,
               },
               {
-                "id": "tile2",
+                "id": "grass2",
                 "img": "grass",
                 "x_position": 64,
                 "y_position": 0,
                 "x_scale": 1,
                 "y_scale": 1,
+                "x_size": 64,
+                "y_size": 64,
               },
               {
-                "id": "tile3",
+                "id": "water1",
                 "img": "water",
                 "x_position": 128,
                 "y_position": 0,
                 "x_scale": 1,
                 "y_scale": 1,
+                "x_size": 64,
+                "y_size": 64,
               },
               {
-                "id": "tile4",
+                "id": "dirt1",
                 "img": "dirt",
                 "x_position": 0,
                 "y_position": 64,
                 "x_scale": 1,
                 "y_scale": 1,
+                "x_size": 64,
+                "y_size": 64,
               },
               {
-                "id": "tile5",
+                "id": "dirt2",
                 "img": "dirt",
                 "x_position": 64,
                 "y_position": 64,
                 "x_scale": 1,
                 "y_scale": 1,
+                "x_size": 64,
+                "y_size": 64,
               }
             ],
             [
               {
-                "id": "tile4",
+                "id": "coin1",
                 "img": "coin",
                 "x_position": 64,
                 "y_position": 0,
                 "x_scale": 1,
                 "y_scale": 1,
+                "x_size": 48,
+                "y_size": 48,
               },
               {
-                "id": "tile5",
+                "id": "coin2",
                 "img": "coin",
                 "x_position": 64,
                 "y_position": 50,
                 "x_scale": 0.5,
                 "y_scale": 0.5,
+                "x_size": 24,
+                "y_size": 24,
                 "x_velocity": 10,
                 "y_velocity": 10,
                 "max_x_velocity": 10,
@@ -102,17 +121,38 @@ let ConfigManager = (function (url) {
                 "y_acceleration": 2,
                 "value": 1,
                 "flip": 1,
-                "update": function (delta) {
+                "update": function (delta, entity_manager) {
+                  /* object only runs when active */
+                  if (this.active === false) {
+                    return;
+                  }
+
+                  /* bookkeeping */
                   this.last_x = this.x_position;
                   this.last_y = this.y_position;
+
+                  /* movement and dumb friction */
                   this.x_position += this.x_velocity * delta;
                   this.y_position += this.y_velocity * delta;
                   this.x_velocity *= 0.8;
                   this.y_velocity *= 0.8;
+
+                  /* perturbation upon rest to keep the coin moving */
                   if (Math.abs(this.last_x - this.x_position) < 0.01) {
                     this.flip *= -1;
                     this.x_velocity = this.max_x_velocity * this.flip;
                     this.y_velocity = this.max_y_velocity * this.flip;
+                  }
+
+                  /* collision w/ player for scorekeeping/deactivation */
+                  let collisions = entity_manager.collide(this);
+                  let player_manager = entity_manager.get_player_manager();
+                  let player = player_manager.get_player();
+                  for (i in collisions) {
+                    if (collisions[i].id === player.id) {
+                      player_manager.modify_player('score', player.score+1);
+                      this.active = false;
+                    }
                   }
                 }
               }
@@ -403,13 +443,18 @@ let PlayerManager = (function () {
     },
     get_tile = function () {
       return {
-          "id": player.id,
-          "img": player.img,
-          "x_position": player.x_position,
-          "y_position": player.y_position,
-          "x_scale": player.x_scale,
-          "y_scale": player.y_scale,
+        "id": player.id,
+        "img": player.img,
+        "x_position": player.x_position,
+        "y_position": player.y_position,
+        "x_scale": player.x_scale,
+        "y_scale": player.y_scale,
+        "x_size": player.x_size,
+        "y_size": player.y_size,
       };
+    },
+    modify_player = function (key, value) {
+      player[key] = value;
     },
     update = function (delta) {
       keys = controls.get_controls();
@@ -458,6 +503,10 @@ let PlayerManager = (function () {
       } else if (player.y_position < player.min_y_position) {
         player.y_position = player.min_y_position;
       }
+
+      if (player.score >= 1) {
+        console.log("player wins.");
+      }
     },
     init = function (config, _controls) {
       player = config.get_player(),
@@ -471,7 +520,67 @@ let PlayerManager = (function () {
     return {
       get_player: get_player,
       get_tile: get_tile,
-      update: update
+      update: update,
+      modify_player: modify_player,
+    };
+  };
+})();
+
+let PhysicsManager = (function () {
+  let physics = null,
+    to_rect = function (entity) {
+      return {
+        'left': entity.x_position,
+        'width': entity.x_size,
+        'top': entity.y_position,
+        'height': entity.y_size,
+        'mid_x': entity.x_position + entity.x_size / 2,
+        'mid_y': entity.y_position + entity.y_size / 2,
+        'collide_distance': Math.max(entity.x_size / 2, entity.y_size / 2),
+      };
+    },
+    distance = function (rect_one, rect_two, debug) {
+      let x_distance = Math.abs(rect_one.mid_x - rect_two.mid_x),
+        y_distance = Math.abs(rect_one.mid_y - rect_two.mid_y),
+        hypotenuse = Math.sqrt(
+          x_distance * x_distance + y_distance * y_distance
+        );
+
+        debug = debug || false;
+        if (debug) {
+          console.log("r1");
+          console.log(rect_one);
+          console.log("r2");
+          console.log(rect_two);
+          console.log("xd");
+          console.log(x_distance);
+          console.log("yd");
+          console.log(y_distance);
+          console.log("hyp");
+          console.log(hypotenuse);
+          debugger;
+        }
+
+        return hypotenuse;
+    },
+    collide = function (entity_one, entity_two, debug) {
+      let rect_one = to_rect(entity_one),
+        rect_two = to_rect(entity_two);
+        rect_distance = distance(rect_one, rect_two, debug);
+
+      return (rect_distance <= rect_one.collide_distance ||
+        rect_distance <= rect_two.collide_distance);
+    },
+    init = function () {
+      physics = {};
+    };
+
+  return function () {
+    init();
+
+    return {
+      physics: physics,
+      collide: collide,
     };
   };
 })();
@@ -482,8 +591,19 @@ let EntityManager = (function () {
     controls = null,
     maps = null,
     current_map_id = null,
+    physics = null,
     stale_entities = function () {
       return current_map_id != maps.get_current_map_id();
+    },
+    get_entity = function (id) {
+      for (i in entities) {
+        if (entities[i].id === id) {
+          return entities[i].id;
+        }
+      }
+    },
+    get_player_manager = function () {
+      return player;
     },
     get_entities = function () {
       return entities;
@@ -508,6 +628,27 @@ let EntityManager = (function () {
       // pull player tile in its layer back out of stored map data
       layers.splice(current_map.player_layer, 1);
     },
+    add_entity = function (layer) {
+      entities.push // TODO: continue thinking about dynamic entities
+    },
+    remove_entity = function (id) {
+      entities.splice(id, 1);
+    },
+    collide = function (entity) {
+      let collisions = [], target = null;
+      if (stale_entities()) {
+        setup_entities();
+      }
+
+      for (i in entities) {
+        target = entities[i];
+        if (entity.id !== target.id && physics.collide(entity, target)) {
+          collisions.push(target);
+        }
+      }
+
+      return collisions;
+    },
     update = function (delta) {
       if (stale_entities()) {
         setup_entities();
@@ -515,28 +656,32 @@ let EntityManager = (function () {
 
       for (i in entities) {
         if (entities[i].update) {
-          entities[i].update(delta);
+          entities[i].update(delta, this);
         }
       }
 
       player.update(delta);
     },
-    init = function (_controls, _player, _maps) {
+    init = function (_controls, _player, _maps, _physics) {
       controls = _controls;
       player = _player;
       maps = _maps;
+      physics = _physics;
       setup_entities();
     };
 
-  return function (_controls, _player, _maps) {
-    init(_controls, _player, _maps);
+  return function (_controls, _player, _maps, _physics) {
+    init(_controls, _player, _maps, _physics);
     console.log("EntityManager init.");
 
     return {
       get_entities: get_entities,
+      get_entity: get_entity,
+      get_player_manager: get_player_manager,
       stale_entities: stale_entities,
       setup_entities: setup_entities,
-      update: update
+      update: update,
+      collide: collide,
     };
   };
 })();
@@ -556,7 +701,7 @@ let RenderManager = (function () {
     },
     draw = function (tile, context, delta) {
       let resource = resources.get_image(tile.img);
-      if (resource) {
+      if (resource && tile.active !== false) {
         context.drawImage(
           resource.img,
           resource.source_x, resource.source_y,
@@ -607,25 +752,27 @@ let GameManager = (function () {
     context_manager = null,
     resource_manager = null,
     render_manager = null,
-
+    physics_manager= null,
     start_game = function () {
       console.log("the loop would now begin.");
       render_manager.next_frame();
     },
     init = function (config_url) {
-      config_manager = ConfigManager(config_url),
+      config_manager = ConfigManager(config_url);
 
+      physics_manager = PhysicsManager();
       control_manager = ControlManager();
-      player_manager = PlayerManager(config_manager, control_manager),
-      map_manager = MapManager(config_manager),
+      player_manager = PlayerManager(config_manager, control_manager);
+      map_manager = MapManager(config_manager);
       entity_manager = EntityManager(
         control_manager,
         player_manager,
-        map_manager
-      ),
+        map_manager,
+        physics_manager
+      );
 
-      context_manager = ContextManager(config_manager),
-      resource_manager = ResourceManager(config_manager),
+      context_manager = ContextManager(config_manager);
+      resource_manager = ResourceManager(config_manager);
       render_manager = RenderManager(
         config_manager,
         context_manager,
