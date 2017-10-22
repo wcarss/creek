@@ -593,7 +593,12 @@ let EntityManager = (function () {
     current_map_id = null,
     physics = null,
     stale_entities = function () {
-      return current_map_id != maps.get_current_map_id();
+      let debug = true; // TODO: make a debug manager
+      let stale = current_map_id !== maps.get_current_map_id();
+      if (debug && stale) {
+        console.log("found stale entities.");
+      }
+      return stale;
     },
     get_entity = function (id) {
       for (i in entities) {
@@ -616,7 +621,7 @@ let EntityManager = (function () {
       entities = [];
 
       // paste the player layer into the correct spot
-      layers.splice(current_map.player_layer, 0, [player.get_tile()]);
+      layers.splice(current_map.player_layer, 0, [player.get_player()]);
 
       // build entities by iterating over layers
       for (i in layers) {
