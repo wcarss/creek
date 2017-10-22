@@ -38,7 +38,7 @@ let ConfigManager = (function (url) {
       "initial_map_id": 0,
       "maps": [
         {
-          "id": "some_map",
+          "id": 0,
           "player_layer": 2,
           "layers": [
             [
@@ -154,6 +154,129 @@ let ConfigManager = (function (url) {
                       this.active = false;
                     }
                   }
+                }
+              }
+            ]
+          ]
+        },
+        {
+          "id": 1,
+          "player_layer": 2,
+          "layers": [
+            [
+              {
+                "id": "dirt1",
+                "img": "dirt",
+                "x_position": 0,
+                "y_position": 0,
+                "x_scale": 1,
+                "y_scale": 1,
+                "x_size": 64,
+                "y_size": 64,
+              },
+              {
+                "id": "dirt2",
+                "img": "dirt",
+                "x_position": 64,
+                "y_position": 0,
+                "x_scale": 1,
+                "y_scale": 1,
+                "x_size": 64,
+                "y_size": 64,
+              },
+              {
+                "id": "water1",
+                "img": "water",
+                "x_position": 128,
+                "y_position": 0,
+                "x_scale": 1,
+                "y_scale": 1,
+                "x_size": 64,
+                "y_size": 64,
+              },
+              {
+                "id": "dirt3",
+                "img": "dirt",
+                "x_position": 0,
+                "y_position": 64,
+                "x_scale": 1,
+                "y_scale": 1,
+                "x_size": 64,
+                "y_size": 64,
+              },
+              {
+                "id": "dirt4",
+                "img": "dirt",
+                "x_position": 64,
+                "y_position": 64,
+                "x_scale": 1,
+                "y_scale": 1,
+                "x_size": 64,
+                "y_size": 64,
+              }
+            ],
+            [
+              {
+                "id": "coin1",
+                "img": "coin",
+                "x_position": 64,
+                "y_position": 0,
+                "x_scale": 1,
+                "y_scale": 1,
+                "x_size": 48,
+                "y_size": 48,
+              },
+              {
+                "id": "coin2",
+                "img": "coin",
+                "x_position": 64,
+                "y_position": 50,
+                "x_scale": 0.5,
+                "y_scale": 0.5,
+                "x_size": 24,
+                "y_size": 24,
+                "x_velocity": 10,
+                "y_velocity": 10,
+                "max_x_velocity": 10,
+                "max_y_velocity": 10,
+                "x_acceleration": 2,
+                "y_acceleration": 2,
+                "value": 1,
+                "flip": 1,
+                "update": function (delta, entity_manager) {
+                  /* object only runs when active */
+                  if (this.active === false) {
+                    return;
+                  }
+
+                  /* bookkeeping */
+                  this.last_x = this.x_position;
+                  this.last_y = this.y_position;
+
+                  /* movement and dumb friction */
+                  this.x_position += this.x_velocity * delta;
+                  this.y_position += this.y_velocity * delta;
+                  this.x_velocity *= 0.8;
+                  this.y_velocity *= 0.8;
+
+                  /* perturbation upon rest to keep the coin moving */
+                  if (Math.abs(this.last_x - this.x_position) < 0.01) {
+                    this.flip *= -1;
+                    this.x_velocity = this.max_x_velocity * this.flip;
+                    this.y_velocity = this.max_y_velocity * this.flip;
+                  }
+
+                  /* collision w/ player for scorekeeping/deactivation */
+                  let collisions = entity_manager.collide(this);
+                  let player_manager = entity_manager.get_player_manager();
+                  let player = player_manager.get_player();
+                  for (i in collisions) {
+                    if (collisions[i].id === player.id) {
+                      player_manager.modify_player('score', player.score+1);
+                      this.active = false;
+                    }
+                  }
+                  /* other map */
                 }
               }
             ]
@@ -404,6 +527,8 @@ let ControlManager = (function () {
 let MapManager = (function () {
   let maps = null,
     current_map_id = null,
+    last_change_time = null,
+    min_change_time = null,
     get_entities = function (map_id) {
       map_id = map_id || current_map_id;
       return maps[map_id].layers;
@@ -413,14 +538,25 @@ let MapManager = (function () {
     },
     get_map = function (map_id) {
       map_id = map_id || current_map_id;
+      console.log("map_id is " + map_id);
       return maps[map_id];
     },
-    change_maps = function (map_id) {
-      current_map_id = map_id;
+    get_maps = function () {
+      return maps;
     },
-    init = function (config) {
-      maps = config.get_maps();
-      current_map_id = config.get_config()['initial_map_id'];
+    change_maps = function (map_id) {
+      let now = performance.now();
+      if (now - last_change_time > min_change_time) {
+        current_map_id = map_id;
+        last_change_time = now;
+      }
+    },
+    init = function (config_manager) {
+      config = config_manager.get_config();
+      maps = config_manager.get_maps();
+      min_change_time = config['min_map_change_time'] || 150;
+      current_map_id = config['initial_map_id'];
+      last_change_time = performance.now();
     };
 
   return function (_config) {
@@ -429,7 +565,9 @@ let MapManager = (function () {
 
     return {
       get_entities: get_entities,
+      change_maps: change_maps,
       get_map: get_map,
+      get_maps: get_maps,
       get_current_map_id: get_current_map_id,
     };
   };
@@ -655,6 +793,12 @@ let EntityManager = (function () {
       return collisions;
     },
     update = function (delta) {
+      let keys = controls.get_controls();
+      if (keys['KeyM']) {
+        // should use real map ids and not just ascending integer indexes of the map's location in the map array
+        maps.change_maps((current_map_id + 1) % maps.get_maps().length);
+      }
+
       if (stale_entities()) {
         setup_entities();
       }
