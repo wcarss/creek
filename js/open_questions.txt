@@ -2,33 +2,42 @@
     - pass whole config objects and let the managers pull out the config vs
     - pass specific subsets of config and whole config objects vs
     - just pass the specific subset of the config
+    - for now I'm resolving this with "always pass the whole config manager"
 
 - entity drawing
     - every entity draws themselves
     - the map tells entities to draw themselves
+      -> this is no longer the case. The map manager manages just maps, while the entity manager produces a list of entities to be drawn, and the render manager draws them.
     - entities update their respective tiles and tell the map to draw all the tiles
     - some other kind of manager draws both
     - as of october 4th 2017, going with:
         - mapmanager is no longer going to really be a thing
           - well, it should be for clamping objects etc, and multiple maps
+          -> yes, it is being used for multiple maps and I'll likely introduce clamping somewhere soon
         - rendermanager is going to draw a list of things that are registered with it
+          -> this is now the case
         - entitymanager is going to issue updates to all entities and update their representations that are registered with the rendermanager
+          -> this is sort of the case, the rendermanager has a reference to the entity list and just draws all of them right now
         - entitymanager can get you the player entity and will call the player's update function, and maybe .. player manager won't even be a thing now
+          -> I've opted to leave the player manager as a thing, so the player isn't technically part of "the map", but persists across them
         - a spec manager..? nah not yet
+          -> hear hear
         - so, steps:
             - snapshot what I've got into a commit
             - move spec loading into entity manager
             - make a render manager
             - move drawing from map manager into render manager
             - make entity manager register entities with render manager
+                -> only sort of went this direction
             - make entity manager issue updates to renderer
-
+         -> these steps are done, this work is resolved
 
 - context passing
     - immediate execution + convoluted manager passage vs
         - e.g. using an init method
     - non-immediate execution + direct manager passage vs
     - .. some wonderful third option?
+      -> I don't know what this question was in reference to so it is resolved
 
 a note I'd left in the code while doing those steps above:
 
@@ -81,3 +90,13 @@ a note I'd left in the code while doing those steps above:
  * Or implement non-entity-specific physics
  * Or implement URL-based loading of stuff
  */
+
+-> I don't want to read that whole thing right now, but from the notes at the bottom:
+  - mapmanager does grab maps from config and set the first map
+  - everything else (really just entity manager) does rely on it for what the "current map" is, and uses internal state vs map manager state to issue map changes for itself
+  - framerate/delta is fixed; I was not multiplying delta by fps -- so effectively I was forcing 1fps for speed
+  - did make a couple of very small test maps -- I will make a larger one soon
+  - collision detection using something like AABB is implemented and each entity controls its own collision-response and can communicate back up to the entity manager
+  - non-entity-specific physics isn't implemented yet. could be a pandora's box.
+  - url-based loading hasn't been necessary yet.
+-> calling the above resolved and moving on.
