@@ -35,10 +35,10 @@ let ConfigManager = (function (url) {
         "health": 10,
         "score": 0,
       },
-      "initial_map_id": 0,
-      "maps": [
-        {
-          "id": 0,
+      "initial_map_id": "map1",
+      "maps": {
+        "map1": {
+          "id": "map1",
           "player_layer": 2,
           "layers": [
             [
@@ -159,8 +159,8 @@ let ConfigManager = (function (url) {
             ]
           ]
         },
-        {
-          "id": 1,
+        "map2": {
+          "id": "map2",
           "player_layer": 2,
           "layers": [
             [
@@ -276,14 +276,13 @@ let ConfigManager = (function (url) {
                       this.active = false;
                     }
                   }
-                  /* other map */
-                }
-              }
-            ]
-          ]
-        }
-      ]
-    };
+                } // update method
+              }   // coin entity
+            ]     // layer
+          ]       // array of layers
+        }         // map object
+      }           // maps object
+    };            // config object
     load = function (config_spec) {
       config = JSON.parse(config_spec);
       return config;
@@ -796,7 +795,11 @@ let EntityManager = (function () {
       let keys = controls.get_controls();
       if (keys['KeyM']) {
         // should use real map ids and not just ascending integer indexes of the map's location in the map array
-        maps.change_maps((current_map_id + 1) % maps.get_maps().length);
+        if (maps.get_current_map_id() === "map2") {
+          maps.change_maps("map1");
+        } else {
+          maps.change_maps("map2");
+        }
       }
 
       if (stale_entities()) {
