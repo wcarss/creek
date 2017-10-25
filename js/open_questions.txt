@@ -1,102 +1,101 @@
-- config passing:
-    - pass whole config objects and let the managers pull out the config vs
-    - pass specific subsets of config and whole config objects vs
-    - just pass the specific subset of the config
-    - for now I'm resolving this with "always pass the whole config manager"
+-> for the draw list, two options:
+1  - array of entities created at map-load
+a    - insert player at layer-relevant position into list
+b    - new entities are added by specifying a layer or position in draw-list
+c      - or they are always added above/below player and we just live with it
+d      - or they are added to "the map" and the map is recalculated
+e    - entities removed are marked as deactivated/removed from to-draw list
+f    - changes are persisted to map either:
+g      - never
+h      - at the code's discretion
+i      - when any entity is added/removed
+j      - when maps are changed
+k    - the entire map is always drawn
+2  - hash of entities created at map-load
+a    - every time an entity moves or is moved over/under it is marked dirty
+b      - or added to a dirty list sorted or paritioned by layer
+c    - render manager draws and clears the dirty list each frame
+d    - the dirty list can be bounded to only what the camera sees
+e    - new entities are just written into the hash (possibly at a layer)
+f    - entities removed are marked as deactivated / removed from to-draw list
+g    - changes are persisted to map either:
+h      - never
+i      - at the code's discretion
+j      - when any entity is added/removed
+k      - when maps are changed
 
-- entity drawing
-    - every entity draws themselves
-    - the map tells entities to draw themselves
-      -> this is no longer the case. The map manager manages just maps, while the entity manager produces a list of entities to be drawn, and the render manager draws them.
-    - entities update their respective tiles and tell the map to draw all the tiles
-    - some other kind of manager draws both
-    - as of october 4th 2017, going with:
-        - mapmanager is no longer going to really be a thing
-          - well, it should be for clamping objects etc, and multiple maps
-          -> yes, it is being used for multiple maps and I'll likely introduce clamping somewhere soon
-        - rendermanager is going to draw a list of things that are registered with it
-          -> this is now the case
-        - entitymanager is going to issue updates to all entities and update their representations that are registered with the rendermanager
-          -> this is sort of the case, the rendermanager has a reference to the entity list and just draws all of them right now
-        - entitymanager can get you the player entity and will call the player's update function, and maybe .. player manager won't even be a thing now
-          -> I've opted to leave the player manager as a thing, so the player isn't technically part of "the map", but persists across them
-        - a spec manager..? nah not yet
-          -> hear hear
-        - so, steps:
-            - snapshot what I've got into a commit
-            - move spec loading into entity manager
-            - make a render manager
-            - move drawing from map manager into render manager
-            - make entity manager register entities with render manager
-                -> only sort of went this direction
-            - make entity manager issue updates to renderer
-         -> these steps are done, this work is resolved
+The code is presently mostly on the side of 1, with statements a,e,g,k being true, and d,h likely shortly to become true (d being the solution in this paradigm to dynamic entities -- just do all the bookkeeping required to insert entities into the draw list where they need to be)
 
-- context passing
-    - immediate execution + convoluted manager passage vs
-        - e.g. using an init method
-    - non-immediate execution + direct manager passage vs
-    - .. some wonderful third option?
-      -> I don't know what this question was in reference to so it is resolved
+2 has some really big down-the-road advantages, namely c,d,e. The g subtree is the same for each option. Moving over to 2 is a lot of work and could present new challenges that I haven't though of yet, but it feels like it'd be a "better solution".
 
-a note I'd left in the code while doing those steps above:
+One open question with 2.d is how the camera-bounding would work -- if the hash is keyed by object id (this is what makes 2.e so nice, entity writing/retrieval is just as easy as having the entity's name and is O(1)), then trying to gather "all the objects within these x and y bounds" will mean iterating over all of the objects, and doing so each frame. If the hash is keyed by x or y or "x,y" or something similar, it's going to make the lookups side of 2.e very hard, and it still doesn't really solve the bounding problem nicely. A third option here is to do multiple hashes: one by object id, one by spatial reference. I think I could somewhat easily implement something quadtree-like to do the lookups quickly. I haven't looked up how to implement a quadtree! But I imagine something like this would be going down: (collapsing to just a 2-tree for convenience of diagramming)
 
-/*
- * okay so here's where you're at:
- *
- * the entity manager is most useful right now for calling update
- * on every entity, or perhaps on every member of specific classes
- * of entities.
- *
- * It isn't .. actually doing that yet! Because you have no updating
- * entities. Right now the RenderManager is manually walking the
- * map-layer structure to get information about everything in there,
- * and drawing them directly, and then saying "hey entities, do your
- * updates", and the entity list is just empty.
- *
- * Ideally, the entities can be stored in an easy-to-specify format,
- * which can then be loaded into a common data store for the app,
- * which the entity manager will write to when it calls update,
- * and the render manager will read from when it calls draw.
- *
- * This makes me think that a "mark as dirty" and "get draw list"
- * and stuff might be plausible. The render manager can just ask
- * the entity manager for the list of drawables and call draw on
- * them passing the context they should draw on, while they know
- * how to draw themselves and the manager knows how to compose the
- * list of things-to-draw.
- *
- * The render manager can also ask the entity manager to issue updates
- * to whatever needs updates, and it can sort its own priorities out
- * internally e.g. always update the player, only update the monsters
- * or menus that need updating right now, etc. Mayyyyybe it would scope
- * that down to the "active map". Hm.
- *
- * Food for thought! When you come back, look at having the entity manager
- * hold the common truth and present a draw-list and update-list or something.
- *
- * After that, look at finding ways to make that list more sensible?
- * Or simplifications?
- *  - mapmanager should grab the maps from the config
- *  - everyone should set their current map from the map manager
- *      maps.current_map_id
- *      maps.current_map
- *  - if we need to change a map, the map manager will change it and everyone will update what they are showing
- *  - 
- * Or figure out what's up with the framerate/delta stuff, as the timing just seems off -- DONE, trick was to multiply delta by the # of frames/second
- * Or try building a little map and specifying some entities.
- *   -- SORT OF DONE, I specified movement for a coin to test entity updates
- * Or implement collision detection
- * Or implement non-entity-specific physics
- * Or implement URL-based loading of stuff
- */
+r = map
+a = top half of map
+b = bottom half of map
+c = top half of top half of map
+d = bottom half of top half of map
+etc...
 
--> I don't want to read that whole thing right now, but from the notes at the bottom:
-  - mapmanager does grab maps from config and set the first map
-  - everything else (really just entity manager) does rely on it for what the "current map" is, and uses internal state vs map manager state to issue map changes for itself
-  - framerate/delta is fixed; I was not multiplying delta by fps -- so effectively I was forcing 1fps for speed
-  - did make a couple of very small test maps -- I will make a larger one soon
-  - collision detection using something like AABB is implemented and each entity controls its own collision-response and can communicate back up to the entity manager
-  - non-entity-specific physics isn't implemented yet. could be a pandora's box.
-  - url-based loading hasn't been necessary yet.
--> calling the above resolved and moving on.
+knowing the size of the leaves and the size of the camera, we can then find the player's location among the leaves and grab the correct number of siblings around the player to limit the drawn world to just the camera's view.
+
+           _g
+             \_c
+           _h/  \
+                 \_a
+           _i    /  \
+ _           \_d/    \
+/          _j/        \
+|                      \_r
+|          _k          /
+|            \_e      /
+player ->  _l/  \    /
+|                \_b/
+|          _m    /
+|            \_f/
+|          _n/
+\_ <- camera draws player + 2 nearest leaves ("leaves of interest") if e.g. one leaf has 10 pixels and we want 20 pixels either direction around the player.
+
+Objects could be stored in this tree and *also* in an object-name hash, and possibly in some others, e.g. "land", "monsters", "physics entities", "projectiles", for easy reference and updating.
+
+This would be cool. And more "right". This would also be _way more_ work than just calculating where to insert things into the draw list.
+
+My chief concern is: I'm not sure how to implement camera-bounding reasonably *without* doing this kind of thing, but this kind of thing sounds like an insane level of work. There's got to be a simpler way.
+
+What would be involved in this?
+
+quadtree {
+  height: float,
+  width: float,
+  x: float,
+  y: float,
+  entities: "x,y"-keyed hash (or null if not leaf)
+  top_right: quadtree (or null if leaf)
+  top_left: quadtree (or null if leaf)
+  bottom_right: quadtree (or null if leaf)
+  bottom_left: quadtree (or null if leaf)
+}
+
+-> next day: over the following few hours I wrote a quadtree implementation with range query support. I'm going to integrate it and move over to a mark-as-dirty system, following an algorithm roughly like this:
+
+on update:
+  - remove from quadtree
+  - mark as dirty
+  - update last_x_position and last_y_position (tracking these is new)
+  - update x_position and y_position
+  - re-add to quadtree
+
+on draw:
+  - get entities from quadtree bounded by camera range
+  - add every dirty entity to a to-draw list
+  -
+
+hmmmmmmmmmmmmmm
+
+I think I need to do a collision detection on the old x,y and the new x,y for every updated entity, and mark *those* as dirty, then draw them all in layer-order. But one of those could have been, say, behind something else, which the updated entity didn't collide with, and when I redraw the background it'll occlude the non-colliding other thing.
+
+I could just draw everything on-screen and damn the mark-as-dirty for now.
+
+¯\_(o-o)_/¯
+
+I can get "everything on-screen" easily enough now that I have the quadtree, and keeping both the quadtree and the by-id hash isn't insane. That clears the path to dynamic entities nicely.
