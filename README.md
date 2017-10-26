@@ -78,6 +78,8 @@ Another example is with objects on the map. When an effect takes place in the en
 
 If you're sufficiently smart or your program is sufficiently simple, you probably don't need assurances of these things -- you can likely keep track of it in your head and ensure that you've never accidentally split instances of state. I am not that smart, and in at least one existing project have run into problems. It's probable that existing js web frameworks or libraries solve or mitigate this problem, perhaps in different ways -- I just don't know about their solutions, and I'm learning about a way to solve it by coming up with my own theme park with blackjack, etc.
 
+You can take a look at [wcarss.ca/creek](http://wcarss.ca/creek).
+
 ### Authorship and License
 
 Written by Wyatt Carss in 2017, whom you can read more about/by at [wcarss.ca](http://wcarss.ca). or spam freely at [carss.w@gmail.com](mailto:carss.w@gmail.com).
