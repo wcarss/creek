@@ -13,6 +13,8 @@ let ConfigManager = (function (url) {
     // it may be time to break these managers up anyway
     config_spec = {
       "canvas_id": "canvas",
+      "height": 500,
+      "width": 500,
       "frames_per_second": 40,
       "resource_url": "resources.json",
       "controls": null,
@@ -20,8 +22,9 @@ let ConfigManager = (function (url) {
       "player": {
         "id": "player1",
         "img": "player",
-        "x_position": 10,
-        "y_position": 10,
+        "x": 10,
+        "y": 10,
+        "layer": 2,
         "x_scale": 1,
         "y_scale": 1,
         "x_size": 26,
@@ -38,81 +41,103 @@ let ConfigManager = (function (url) {
       "initial_map_id": "map1",
       "maps": {
         "map1": {
+          "height": 500,
+          "width": 500,
           "id": "map1",
           "player_layer": 2,
           "layers": [
             [
               {
+                "id": "bg1",
+                "img": "bg",
+                "x": 0,
+                "y": 0,
+                "x_scale": 1,
+                "y_scale": 1,
+                "x_size": 500,
+                "y_size": 500,
+                "layer": -1,
+              }
+            ],
+            [
+              {
                 "id": "grass1",
                 "img": "grass",
-                "x_position": 0,
-                "y_position": 0,
+                "x": 0,
+                "y": 0,
                 "x_scale": 1,
                 "y_scale": 1,
                 "x_size": 64,
                 "y_size": 64,
+                "layer": 0,
               },
               {
                 "id": "grass2",
                 "img": "grass",
-                "x_position": 64,
-                "y_position": 0,
+                "x": 64,
+                "y": 0,
                 "x_scale": 1,
                 "y_scale": 1,
                 "x_size": 64,
                 "y_size": 64,
+                "layer": 0,
               },
               {
                 "id": "water1",
                 "img": "water",
-                "x_position": 128,
-                "y_position": 0,
+                "x": 128,
+                "y": 0,
                 "x_scale": 1,
                 "y_scale": 1,
                 "x_size": 64,
                 "y_size": 64,
+                "layer": 0,
               },
               {
                 "id": "dirt1",
                 "img": "dirt",
-                "x_position": 0,
-                "y_position": 64,
+                "x": 0,
+                "y": 64,
                 "x_scale": 1,
                 "y_scale": 1,
                 "x_size": 64,
                 "y_size": 64,
+                "layer": 0,
               },
               {
                 "id": "dirt2",
                 "img": "dirt",
-                "x_position": 64,
-                "y_position": 64,
+                "x": 64,
+                "y": 64,
                 "x_scale": 1,
                 "y_scale": 1,
                 "x_size": 64,
                 "y_size": 64,
+                "layer": 0,
               }
             ],
             [
               {
                 "id": "coin1",
                 "img": "coin",
-                "x_position": 64,
-                "y_position": 0,
+                "x": 64,
+                "y": 0,
                 "x_scale": 1,
                 "y_scale": 1,
                 "x_size": 48,
                 "y_size": 48,
+                "layer": 1,
               },
               {
                 "id": "coin2",
                 "img": "coin",
-                "x_position": 64,
-                "y_position": 50,
+                "x": 64,
+                "y": 50,
                 "x_scale": 0.5,
                 "y_scale": 0.5,
                 "x_size": 24,
                 "y_size": 24,
+                "layer": 1,
                 "x_velocity": 10,
                 "y_velocity": 10,
                 "max_x_velocity": 10,
@@ -128,17 +153,17 @@ let ConfigManager = (function (url) {
                   }
 
                   /* bookkeeping */
-                  this.last_x = this.x_position;
-                  this.last_y = this.y_position;
+                  this.last_x = this.x;
+                  this.last_y = this.y;
 
                   /* movement and dumb friction */
-                  this.x_position += this.x_velocity * delta;
-                  this.y_position += this.y_velocity * delta;
+                  this.x += this.x_velocity * delta;
+                  this.y += this.y_velocity * delta;
                   this.x_velocity *= 0.8;
                   this.y_velocity *= 0.8;
 
                   /* perturbation upon rest to keep the coin moving */
-                  if (Math.abs(this.last_x - this.x_position) < 0.01) {
+                  if (Math.abs(this.last_x - this.x) < 0.01) {
                     this.flip *= -1;
                     this.x_velocity = this.max_x_velocity * this.flip;
                     this.y_velocity = this.max_y_velocity * this.flip;
@@ -161,80 +186,102 @@ let ConfigManager = (function (url) {
         },
         "map2": {
           "id": "map2",
+          "height": 500,
+          "width": 500,
           "player_layer": 2,
           "layers": [
             [
               {
+                "id": "bg1",
+                "img": "bg",
+                "x": 0,
+                "y": 0,
+                "x_scale": 1,
+                "y_scale": 1,
+                "x_size": 500,
+                "y_size": 500,
+                "layer": -1,
+              }
+            ],
+            [
+              {
                 "id": "dirt1",
                 "img": "dirt",
-                "x_position": 0,
-                "y_position": 0,
+                "x": 0,
+                "y": 0,
                 "x_scale": 1,
                 "y_scale": 1,
                 "x_size": 64,
                 "y_size": 64,
+                "layer": 0,
               },
               {
                 "id": "dirt2",
                 "img": "dirt",
-                "x_position": 64,
-                "y_position": 0,
+                "x": 64,
+                "y": 0,
                 "x_scale": 1,
                 "y_scale": 1,
                 "x_size": 64,
                 "y_size": 64,
+                "layer": 0,
               },
               {
                 "id": "water1",
                 "img": "water",
-                "x_position": 128,
-                "y_position": 0,
+                "x": 128,
+                "y": 0,
                 "x_scale": 1,
                 "y_scale": 1,
                 "x_size": 64,
                 "y_size": 64,
+                "layer": 0,
               },
               {
                 "id": "dirt3",
                 "img": "dirt",
-                "x_position": 0,
-                "y_position": 64,
+                "x": 0,
+                "y": 64,
                 "x_scale": 1,
                 "y_scale": 1,
                 "x_size": 64,
                 "y_size": 64,
+                "layer": 0,
               },
               {
                 "id": "dirt4",
                 "img": "dirt",
-                "x_position": 64,
-                "y_position": 64,
+                "x": 64,
+                "y": 64,
                 "x_scale": 1,
                 "y_scale": 1,
                 "x_size": 64,
                 "y_size": 64,
+                "layer": 0,
               }
             ],
             [
               {
                 "id": "coin1",
                 "img": "coin",
-                "x_position": 64,
-                "y_position": 0,
+                "x": 64,
+                "y": 0,
                 "x_scale": 1,
                 "y_scale": 1,
                 "x_size": 48,
                 "y_size": 48,
+                "layer": 1,
               },
               {
                 "id": "coin2",
                 "img": "coin",
-                "x_position": 64,
-                "y_position": 50,
+                "x": 64,
+                "y": 50,
                 "x_scale": 0.5,
                 "y_scale": 0.5,
                 "x_size": 24,
                 "y_size": 24,
+                "layer": 1,
                 "x_velocity": 10,
                 "y_velocity": 10,
                 "max_x_velocity": 10,
@@ -250,17 +297,17 @@ let ConfigManager = (function (url) {
                   }
 
                   /* bookkeeping */
-                  this.last_x = this.x_position;
-                  this.last_y = this.y_position;
+                  this.last_x = this.x;
+                  this.last_y = this.y;
 
                   /* movement and dumb friction */
-                  this.x_position += this.x_velocity * delta;
-                  this.y_position += this.y_velocity * delta;
+                  this.x += this.x_velocity * delta;
+                  this.y += this.y_velocity * delta;
                   this.x_velocity *= 0.8;
                   this.y_velocity *= 0.8;
 
                   /* perturbation upon rest to keep the coin moving */
-                  if (Math.abs(this.last_x - this.x_position) < 0.01) {
+                  if (Math.abs(this.last_x - this.x) < 0.01) {
                     this.flip *= -1;
                     this.x_velocity = this.max_x_velocity * this.flip;
                     this.y_velocity = this.max_y_velocity * this.flip;
@@ -472,6 +519,24 @@ let ResourceManager = (function () {
             "source_width": 64,
             "source_height": 64,
           },
+          {
+            "type": "image",
+            "url": "resources/images/bg.png",
+            "id": "bg",
+            "source_x": 0,
+            "source_y": 0,
+            "source_width": 500,
+            "source_height": 500,
+          },
+          {
+            "type": "image",
+            "url": "resources/images/particle.png",
+            "id": "particle",
+            "source_x": 0,
+            "source_y": 0,
+            "source_width": 10,
+            "source_height": 10,
+          }
         ]
       };
       load(JSON.stringify(url));
@@ -550,6 +615,24 @@ let MapManager = (function () {
         last_change_time = now;
       }
     },
+    get_quadtree = function (map, leaf_size) {
+      console.log("getting qt");
+      leaf_size = leaf_size || 25;
+      map = map || maps[current_map_id];
+      // iterate over map and produce quadtree
+
+      let tree = build_quadtree(0, 0, map.width, map.height, leaf_size),
+        entities = null;
+      for (i in map.layers) {
+        entities = map.layers[i];
+        for (j in entities) {
+          console.log("inserting entity " + entities[j].id);
+          quadtree_insert(tree, entities[j]);
+        }
+      }
+
+      return tree;
+    },
     init = function (config_manager) {
       config = config_manager.get_config();
       maps = config_manager.get_maps();
@@ -566,6 +649,7 @@ let MapManager = (function () {
       get_entities: get_entities,
       change_maps: change_maps,
       get_map: get_map,
+      get_quadtree: get_quadtree,
       get_maps: get_maps,
       get_current_map_id: get_current_map_id,
     };
@@ -582,8 +666,8 @@ let PlayerManager = (function () {
       return {
         "id": player.id,
         "img": player.img,
-        "x_position": player.x_position,
-        "y_position": player.y_position,
+        "x": player.x,
+        "y": player.y,
         "x_scale": player.x_scale,
         "y_scale": player.y_scale,
         "x_size": player.x_size,
@@ -626,23 +710,26 @@ let PlayerManager = (function () {
 
       //console.log("player's x velocity:");
       //console.log(player.x_velocity);
-      player.x_position += delta * player.x_velocity;
-      player.y_position += delta * player.y_velocity;
+      //player.last_x = player.x;
+      //player.last_y = player.y;
+      player.x += delta * player.x_velocity;
+      player.y += delta * player.y_velocity;
 
       // todo: the map should probably clamp max/min positions
-      if (player.x_position > player.max_x_position) {
-        player.x_position = player.max_x_position;
-      } else if (player.x_position < player.min_x_position) {
-        player.x_position = player.min_x_position;
+      if (player.x > player.max_x) {
+        player.x = player.max_x;
+      } else if (player.x < player.min_x) {
+        player.x = player.min_x;
       }
-      if (player.y_position > player.max_y_position) {
-        player.y_position = player.max_y_position;
-      } else if (player.y_position < player.min_y_position) {
-        player.y_position = player.min_y_position;
+      if (player.y > player.max_y) {
+        player.y = player.max_y;
+      } else if (player.y < player.min_y) {
+        player.y = player.min_y;
       }
 
       if (player.score >= 1) {
         console.log("player wins.");
+        player.score = 0;
       }
     },
     init = function (config, _controls) {
@@ -667,12 +754,12 @@ let PhysicsManager = (function () {
   let physics = null,
     to_rect = function (entity) {
       return {
-        'left': entity.x_position,
+        'left': entity.x,
         'width': entity.x_size,
-        'top': entity.y_position,
+        'top': entity.y,
         'height': entity.y_size,
-        'mid_x': entity.x_position + entity.x_size / 2,
-        'mid_y': entity.y_position + entity.y_size / 2,
+        'mid_x': entity.x + entity.x_size / 2,
+        'mid_y': entity.y + entity.y_size / 2,
         'collide_distance': Math.max(entity.x_size / 2, entity.y_size / 2),
       };
     },
@@ -705,8 +792,7 @@ let PhysicsManager = (function () {
         rect_two = to_rect(entity_two);
         rect_distance = distance(rect_one, rect_two, debug);
 
-      return (rect_distance <= rect_one.collide_distance ||
-        rect_distance <= rect_two.collide_distance);
+      return (rect_distance <= rect_one.collide_distance+rect_two.collide_distance);
     },
     init = function () {
       physics = {};
@@ -729,6 +815,9 @@ let EntityManager = (function () {
     maps = null,
     current_map_id = null,
     physics = null,
+    tree = null,
+    particle_count = 0,
+    last_particle_added = null,
     stale_entities = function () {
       let debug = true; // TODO: make a debug manager
       let stale = current_map_id !== maps.get_current_map_id();
@@ -748,33 +837,31 @@ let EntityManager = (function () {
       return player;
     },
     get_entities = function () {
-      return entities;
+      let x = -100, y = -100, width = 600, height = 600;
+      let et = quadtree_get_by_range(tree, x, y, width, height);
+      return et.sort(
+        function (a, b) {
+          return a.layer - b.layer;
+        }
+      );
     },
     setup_entities = function () {
       let current_map = maps.get_map(),
         layers = current_map.layers;
 
       current_map_id = current_map.id;
-      entities = [];
 
       // paste the player layer into the correct spot
       layers.splice(current_map.player_layer, 0, [player.get_player()]);
-
-      // build entities by iterating over layers
-      for (i in layers) {
-        for (j in layers[i]) {
-          entities.push(layers[i][j]);
-        }
-      }
-
-      // pull player tile in its layer back out of stored map data
+      tree = maps.get_quadtree(current_map);
       layers.splice(current_map.player_layer, 1);
+      entities = get_entities();
     },
-    add_entity = function (layer) {
-      entities.push // TODO: continue thinking about dynamic entities
+    add_entity = function (entity) {
+      quadtree_insert(tree, entity); // TODO: continue thinking about dynamic entities
     },
     remove_entity = function (id) {
-      entities.splice(id, 1);
+      quadtree_remove_by_id(tree, id);
     },
     collide = function (entity) {
       let collisions = [], target = null;
@@ -784,7 +871,7 @@ let EntityManager = (function () {
 
       for (i in entities) {
         target = entities[i];
-        if (entity.id !== target.id && physics.collide(entity, target)) {
+        if (target.active !== false && entity.id !== target.id && physics.collide(entity, target)) {
           collisions.push(target);
         }
       }
@@ -800,12 +887,44 @@ let EntityManager = (function () {
         } else {
           maps.change_maps("map2");
         }
+      } else if (keys['KeyZ']) {
+        if (performance.now() - last_particle_added > 100) {
+          particle_count += 1;
+          last_particle_added = performance.now();
+
+          add_entity({
+            'x': Math.random()*500,
+            'y': Math.random()*500,
+            'x_scale': 1,
+            'y_scale': 1,
+            'x_size': 10,
+            'y_size': 10,
+            'x_velocity': Math.random()*50-25,
+            'y_velocity': Math.random()*50-25,
+            'layer': 1.5,
+            'id': 'projectile' + particle_count,
+            'img': "particle",
+            'x_acceleration': 2,
+            'x_acceleration': 2,
+            'update': function (delta, et) {
+              this.x += this.x_velocity * delta;
+              this.y += this.y_velocity * delta;
+              this.x_velocity *= 0.8;
+              this.y_velocity *= 0.8;
+              if (Math.random() > 0.95) {
+                this.x_velocity += Math.random() * 50 - 25;
+                this.y_velocity += Math.random() * 50 - 25;
+              }
+            }
+          });
+        }
       }
 
       if (stale_entities()) {
         setup_entities();
       }
 
+      entities = get_entities();
       for (i in entities) {
         if (entities[i].update) {
           entities[i].update(delta, this);
@@ -819,6 +938,7 @@ let EntityManager = (function () {
       player = _player;
       maps = _maps;
       physics = _physics;
+      last_particle_added = performance.now();
       setup_entities();
     };
 
@@ -858,7 +978,7 @@ let RenderManager = (function () {
           resource.img,
           resource.source_x, resource.source_y,
           resource.source_width, resource.source_height,
-          tile.x_position, tile.y_position,
+          tile.x, tile.y,
           tile.x_scale * resource.source_width,
           tile.y_scale * resource.source_height
         );
@@ -870,6 +990,7 @@ let RenderManager = (function () {
       last_time = current_time;
 
       draw_list = entities.get_entities();
+      //console.log(draw_list.length);
       for (i in draw_list) {
         draw(draw_list[i], context, delta);
       }
