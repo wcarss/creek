@@ -1,20 +1,15 @@
-let game = null,
-  config = null;
-
 window.addEventListener("load", function () {
   game_manager = GameManager("config.json");
   game_manager.start_game();
 });
 
 let ConfigManager = (function (url) {
+  // TODO: replace spec with ajax call to url
+  // TODO: or, just put the spec at a location and put it in a script tag
+  // it may be time to break these managers up anyway
   let config = null,
-    // TODO: replace spec with ajax call to url
-    // TODO: or, just put the spec at a location and put it in a script tag
-    // it may be time to break these managers up anyway
     config_spec = {
       "canvas_id": "canvas",
-      "height": 500,
-      "width": 500,
       "frames_per_second": 40,
       "resource_url": "resources.json",
       "controls": null,
@@ -179,6 +174,7 @@ let ConfigManager = (function (url) {
                       this.active = false;
                     }
                   }
+                  entity_manager.move_entity(this, this.x, this.y);
                 }
               }
             ]
@@ -323,13 +319,14 @@ let ConfigManager = (function (url) {
                       this.active = false;
                     }
                   }
+                  entity_manager.move_entity(this, this.x, this.y);
                 } // update method
               }   // coin entity
             ]     // layer
           ]       // array of layers
         }         // map object
       }           // maps object
-    };            // config object
+    },            // config object
     load = function (config_spec) {
       config = JSON.parse(config_spec);
       return config;
@@ -616,7 +613,6 @@ let MapManager = (function () {
       }
     },
     get_quadtree = function (map, leaf_size) {
-      console.log("getting qt");
       leaf_size = leaf_size || 25;
       map = map || maps[current_map_id];
       // iterate over map and produce quadtree
@@ -626,7 +622,6 @@ let MapManager = (function () {
       for (i in map.layers) {
         entities = map.layers[i];
         for (j in entities) {
-          console.log("inserting entity " + entities[j].id);
           quadtree_insert(tree, entities[j]);
         }
       }
@@ -677,7 +672,7 @@ let PlayerManager = (function () {
     modify_player = function (key, value) {
       player[key] = value;
     },
-    update = function (delta) {
+    update = function (delta, entity_manager) {
       keys = controls.get_controls();
 
       if (keys['KeyW'] || keys['ArrowUp']) {
@@ -708,10 +703,6 @@ let PlayerManager = (function () {
         player.y_velocity = -player.max_y_velocity;
       }
 
-      //console.log("player's x velocity:");
-      //console.log(player.x_velocity);
-      //player.last_x = player.x;
-      //player.last_y = player.y;
       player.x += delta * player.x_velocity;
       player.y += delta * player.y_velocity;
 
@@ -726,6 +717,8 @@ let PlayerManager = (function () {
       } else if (player.y < player.min_y) {
         player.y = player.min_y;
       }
+
+      entity_manager.move_entity(player, player.x, player.y);
 
       if (player.score >= 1) {
         console.log("player wins.");
@@ -857,6 +850,12 @@ let EntityManager = (function () {
       layers.splice(current_map.player_layer, 1);
       entities = get_entities();
     },
+    move_entity = function (entity, x, y) {
+      quadtree_remove_by_id(tree, entity.id);
+      entity.x = x;
+      entity.y = y;
+      quadtree_insert(tree, entity);
+    },
     add_entity = function (entity) {
       quadtree_insert(tree, entity); // TODO: continue thinking about dynamic entities
     },
@@ -915,6 +914,7 @@ let EntityManager = (function () {
                 this.x_velocity += Math.random() * 50 - 25;
                 this.y_velocity += Math.random() * 50 - 25;
               }
+              et.move_entity(this, this.x, this.y);
             }
           });
         }
@@ -931,7 +931,7 @@ let EntityManager = (function () {
         }
       }
 
-      player.update(delta);
+      player.update(delta, this);
     },
     init = function (_controls, _player, _maps, _physics) {
       controls = _controls;
@@ -954,6 +954,7 @@ let EntityManager = (function () {
       setup_entities: setup_entities,
       update: update,
       collide: collide,
+      move_entity: move_entity,
     };
   };
 })();
