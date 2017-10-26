@@ -33,11 +33,21 @@ let ConfigManager = (function (url) {
         "health": 10,
         "score": 0,
       },
+      "camera": {
+        "x": 0,
+        "y": 0,
+        "width": 500,
+        "height": 500,
+        "left_margin": 100,
+        "right_margin": 100,
+        "top_margin": 100,
+        "bottom_margin": 100,
+      },
       "initial_map_id": "map1",
       "maps": {
         "map1": {
-          "height": 500,
-          "width": 500,
+          "height": 2000,
+          "width": 600,
           "id": "map1",
           "player_layer": 2,
           "layers": [
@@ -45,12 +55,12 @@ let ConfigManager = (function (url) {
               {
                 "id": "bg1",
                 "img": "bg",
-                "x": 0,
-                "y": 0,
-                "x_scale": 1,
-                "y_scale": 1,
-                "x_size": 500,
-                "y_size": 500,
+                "x": -3000,
+                "y": -3000,
+                "x_scale": 12,
+                "y_scale": 12,
+                "x_size": 6000,
+                "y_size": 6000,
                 "layer": -1,
               }
             ],
@@ -190,12 +200,12 @@ let ConfigManager = (function (url) {
               {
                 "id": "bg1",
                 "img": "bg",
-                "x": 0,
-                "y": 0,
-                "x_scale": 1,
-                "y_scale": 1,
-                "x_size": 500,
-                "y_size": 500,
+                "x": -3000,
+                "y": -3000,
+                "x_scale": 12,
+                "y_scale": 12,
+                "x_size": 6000,
+                "y_size": 6000,
                 "layer": -1,
               }
             ],
@@ -391,6 +401,68 @@ let ContextManager = (function () {
       set_canvas: set_canvas,
     };
   };
+})();
+
+let CameraManager = (function () {
+  let camera = null,
+    get = function () {
+      return camera;
+    },
+    get_offset = function () {
+      return {
+        x: camera.x,
+        y: camera.y,
+      };
+    },
+    center = function (x, y) {
+      let offset_x = x - camera.raw_width / 2,
+        offset_y = y - camera.raw_height / 2;
+
+      move(offset_x, offset_y);
+    },
+    move = function (x, y) {
+      camera.raw_x = x;
+      camera.raw_y = y;
+      camera.x = camera.raw_x;// - camera.left_margin;
+      camera.y = camera.raw_y;// - camera.top_margin;
+    },
+    resize = function (width, height) {
+      camera.raw_width = width;
+      camera.raw_height = height;
+      camera.width = camera.raw_width;// + camera.right_margin,
+      camera.height = camera.raw_height;// + camera.bottom_margin;
+    },
+    init = function (config_manager) {
+      let config = config_manager.get_config(),
+        camera_config = config['camera'];
+
+      camera = {
+        raw_x: camera_config.x,
+        raw_y: camera_config.y,
+        raw_width: camera_config.width,
+        raw_height: camera_config.height,
+        x: camera_config.x,// - camera_config.left_margin,
+        y: camera_config.y,// - camera_config.top_margin,
+        width: camera_config.width,// + camera_config.right_margin,
+        height: camera_config.height,// + camera_config.bottom_margin,
+        top_margin: camera_config.top_margin,
+        bottom_margin: camera_config.bottom_margin,
+        left_margin: camera_config.left_margin,
+        right_margin: camera_config.right_margin,
+      };
+    };
+
+  return function (config_manager) {
+    init(config_manager);
+
+    return {
+      get: get,
+      get_offset: get_offset,
+      move: move,
+      resize: resize,
+      center: center,
+    };
+  }
 })();
 
 let ResourceManager = (function () {
@@ -719,6 +791,7 @@ let PlayerManager = (function () {
       }
 
       entity_manager.move_entity(player, player.x, player.y);
+      entity_manager.get_camera_manager().center(player.x, player.y);
 
       if (player.score >= 1) {
         console.log("player wins.");
@@ -804,6 +877,8 @@ let PhysicsManager = (function () {
 let EntityManager = (function () {
   let entities = null,
     player = null,
+    camera_manager = null,
+    camera = null,
     controls = null,
     maps = null,
     current_map_id = null,
@@ -829,9 +904,18 @@ let EntityManager = (function () {
     get_player_manager = function () {
       return player;
     },
+    get_camera_manager = function () {
+      return camera_manager;
+    },
     get_entities = function () {
-      let x = -100, y = -100, width = 600, height = 600;
+      let x = camera.x-camera.left_margin,
+        y = camera.y-camera.top_margin,
+        width = camera.width+camera.right_margin,
+        height = camera.height+camera.bottom_margin;
+
       let et = quadtree_get_by_range(tree, x, y, width, height);
+
+      et.push(quadtree_get_by_id(tree, "bg1"));
       return et.sort(
         function (a, b) {
           return a.layer - b.layer;
@@ -933,23 +1017,26 @@ let EntityManager = (function () {
 
       player.update(delta, this);
     },
-    init = function (_controls, _player, _maps, _physics) {
+    init = function (_controls, _player, _camera, _maps, _physics) {
       controls = _controls;
-      player = _player;
+      let tp = player = _player;
+      camera_manager = _camera;
+      camera = _camera.get();
       maps = _maps;
       physics = _physics;
       last_particle_added = performance.now();
       setup_entities();
     };
 
-  return function (_controls, _player, _maps, _physics) {
-    init(_controls, _player, _maps, _physics);
+  return function (_controls, _player, _camera, _maps, _physics) {
+    init(_controls, _player, _camera, _maps, _physics);
     console.log("EntityManager init.");
 
     return {
       get_entities: get_entities,
       get_entity: get_entity,
       get_player_manager: get_player_manager,
+      get_camera_manager: get_camera_manager,
       stale_entities: stale_entities,
       setup_entities: setup_entities,
       update: update,
@@ -972,14 +1059,14 @@ let RenderManager = (function () {
       context_manager = passed_context;
       context = passed_context.get_context();
     },
-    draw = function (tile, context, delta) {
+    draw = function (tile, context, delta, offset) {
       let resource = resources.get_image(tile.img);
       if (resource && tile.active !== false) {
         context.drawImage(
           resource.img,
           resource.source_x, resource.source_y,
           resource.source_width, resource.source_height,
-          tile.x, tile.y,
+          tile.x-offset.x, tile.y-offset.y,
           tile.x_scale * resource.source_width,
           tile.y_scale * resource.source_height
         );
@@ -990,10 +1077,15 @@ let RenderManager = (function () {
       let delta = ((current_time - last_time)/1000) * frames_per_second;
       last_time = current_time;
 
-      draw_list = entities.get_entities();
-      //console.log(draw_list.length);
+      let world_offset = entities.get_camera_manager().get_offset(),
+        draw_list = entities.get_entities();
+      let canvas = context_manager.get_canvas(),
+        render_width = canvas.width,
+        render_height = canvas.height,
+        context = context_manager.get_context();
+
       for (i in draw_list) {
-        draw(draw_list[i], context, delta);
+        draw(draw_list[i], context, delta, world_offset);
       }
       entities.update(delta);
 
@@ -1037,10 +1129,12 @@ let GameManager = (function () {
       physics_manager = PhysicsManager();
       control_manager = ControlManager();
       player_manager = PlayerManager(config_manager, control_manager);
+      camera_manager = CameraManager(config_manager);
       map_manager = MapManager(config_manager);
       entity_manager = EntityManager(
         control_manager,
         player_manager,
+        camera_manager,
         map_manager,
         physics_manager
       );
