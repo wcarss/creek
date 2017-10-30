@@ -7,6 +7,19 @@ let ConfigManager = (function (url) {
   // TODO: replace spec with ajax call to url
   // TODO: or, just put the spec at a location and put it in a script tag
   // it may be time to break these managers up anyway
+  let map_bg = {
+    "id": "bg1",
+    "img": "bg",
+    "x": -3000,
+    "y": -3000,
+    "x_scale": 12,
+    "y_scale": 12,
+    "x_size": 6000,
+    "y_size": 6000,
+    "layer": -1,
+  };
+  map_test.layers.unshift([map_bg]);
+  map_field.layers.unshift([map_bg]);
   let config = null,
     config_spec = {
       "canvas_id": "canvas",
@@ -43,7 +56,7 @@ let ConfigManager = (function (url) {
         "top_margin": 100,
         "bottom_margin": 100,
       },
-      "initial_map_id": "map1",
+      "initial_map_id": "map_field",
       "maps": {
         "map1": {
           "height": 2000,
@@ -334,7 +347,9 @@ let ConfigManager = (function (url) {
               }   // coin entity
             ]     // layer
           ]       // array of layers
-        }         // map object
+        },        // map object
+        "map_test": map_test,
+        "map_field": map_field,
       }           // maps object
     },            // config object
     load = function (config_spec) {
@@ -605,7 +620,16 @@ let ResourceManager = (function () {
             "source_y": 0,
             "source_width": 10,
             "source_height": 10,
-          }
+          },
+          {
+            "type": "image",
+            "url": "resources/images/tileset.png",
+            "id": "tileset",
+            "source_x": 0,
+            "source_y": 0,
+            "source_width": 480,
+            "source_height": 256,
+          },
         ]
       };
       load(JSON.stringify(url));
@@ -973,11 +997,15 @@ let EntityManager = (function () {
     update = function (delta) {
       let keys = controls.get_controls();
       if (keys['KeyM']) {
-        // should use real map ids and not just ascending integer indexes of the map's location in the map array
-        if (maps.get_current_map_id() === "map2") {
-          maps.change_maps("map1");
-        } else {
+        // should build a means to cycle that doesn't rely on hardcoding an if-ladder
+        if (maps.get_current_map_id() === "map1") {
           maps.change_maps("map2");
+        } else if (maps.get_current_map_id() === "map2") {
+          maps.change_maps("map_field");
+        } else if (maps.get_current_map_id() === 'map_field'){
+          maps.change_maps('map_test');
+        } else {
+          maps.change_maps("map1");
         }
         player.modify_player('layer', maps.get_map().player_layer);
       } else if (keys['KeyZ']) {
