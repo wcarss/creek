@@ -799,8 +799,13 @@ let PlayerManager = (function () {
       }
     },
     init = function (config, _controls) {
-      player = config.get_player(),
       controls = _controls;
+      player = config.get_player();
+      // TODO: fix this when map-load actions are implemented
+      let local_config = config.get_config(),
+        initial_map = local_config.initial_map_id;
+        player_layer = local_config.maps[initial_map].player_layer;
+      player.layer = player_layer;
     };
 
   return function (config, _controls) {
@@ -974,6 +979,7 @@ let EntityManager = (function () {
         } else {
           maps.change_maps("map2");
         }
+        player.modify_player('layer', maps.get_map().player_layer);
       } else if (keys['KeyZ']) {
         if (performance.now() - last_particle_added > 100) {
           particle_count += 1;
