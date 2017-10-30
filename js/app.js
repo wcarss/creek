@@ -913,9 +913,13 @@ let EntityManager = (function () {
         width = camera.width+camera.right_margin,
         height = camera.height+camera.bottom_margin;
 
-      let et = quadtree_get_by_range(tree, x, y, width, height);
+      let et = quadtree_get_by_range(tree, x, y, x+width, y+height);
 
-      et.push(quadtree_get_by_id(tree, "bg1"));
+      let background = quadtree_get_by_id(tree, "bg1");
+      if (background) {
+        et.push(quadtree_get_by_id(tree, "bg1"));
+      }
+
       return et.sort(
         function (a, b) {
           return a.layer - b.layer;
