@@ -1070,15 +1070,22 @@ let RenderManager = (function () {
       context = passed_context.get_context();
     },
     draw = function (tile, context, delta, offset) {
-      let resource = resources.get_image(tile.img);
+      let resource = resources.get_image(tile.img),
+        source_x = 0, source_y = 0, source_width = 0, source_height = 0;
+
       if (resource && tile.active !== false) {
+        source_x = tile.source_x || resource.source_x;
+        source_y = tile.source_y || resource.source_y;
+        source_width = tile.source_width || resource.source_width;
+        source_height = tile.source_height || resource.source_height;
+
         context.drawImage(
           resource.img,
-          resource.source_x, resource.source_y,
-          resource.source_width, resource.source_height,
+          source_x, source_y,
+          source_width, source_height,
           tile.x-offset.x, tile.y-offset.y,
-          tile.x_scale * resource.source_width,
-          tile.y_scale * resource.source_height
+          tile.x_scale * source_width,
+          tile.y_scale * source_height
         );
       }
     },
