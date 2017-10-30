@@ -194,7 +194,7 @@ function quadtree_range_check_corners (tree, x, y, x2, y2) {
   let low_low_corners = quadtree_check_corners(tree, x, y),
     low_high_corners = quadtree_check_corners(tree, x, y2),
     high_low_corners = quadtree_check_corners(tree, x2, y),
-    high_high_corners = quadtree_check_corners(tree, x2, x2),
+    high_high_corners = quadtree_check_corners(tree, x2, y2),
     final_corners = {};
 
   if (low_low_corners.bottom_right || low_high_corners.bottom_right ||
@@ -331,8 +331,7 @@ function quadtree_get_by_range (tree, x, y, x2, y2) {
     entity_list = [];
 
   if (tree.entities !== null) {
-    let epsilon = 0.01,
-      high_x = Math.max(x, x2) + epsilon,
+    let high_x = Math.max(x, x2) + epsilon,
       low_x = Math.min(x, x2) - epsilon,
       high_y = Math.max(y, y2) + epsilon,
       low_y = Math.min(y, y2) - epsilon;
@@ -371,8 +370,7 @@ function quadtree_remove_by_range (tree, x, y, x2, y2) {
     entity_list = [];
 
   if (tree.entities !== null) {
-    let epsilon = 0.01,
-      high_x = Math.max(x, x2) + epsilon,
+    let high_x = Math.max(x, x2) + epsilon,
       low_x = Math.min(x, x2) - epsilon,
       high_y = Math.max(y, y2) + epsilon,
       low_y = Math.min(y, y2) - epsilon,
