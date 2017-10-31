@@ -3,10 +3,10 @@ window.addEventListener("load", function () {
   game_manager.start_game();
 });
 
+
+
 let ConfigManager = (function (url) {
   // TODO: replace spec with ajax call to url
-  // TODO: or, just put the spec at a location and put it in a script tag
-  // it may be time to break these managers up anyway
   let map_bg = {
     "id": "bg1",
     "img": "bg",
@@ -54,6 +54,8 @@ let ConfigManager = (function (url) {
       return state;
     }
 
+  // forcing a background into these maps
+  // TODO: I'm going to have to find some way to add maps dynamically
   map_test.layers.unshift([map_bg]);
   map_field.layers.unshift([map_bg]);
   config_spec.maps.map_test = map_test;
@@ -71,6 +73,8 @@ let ConfigManager = (function (url) {
     };
   };
 })();
+
+
 
 let ContextManager = (function () {
   let context = null,
@@ -108,6 +112,8 @@ let ContextManager = (function () {
   };
 })();
 
+
+
 let CameraManager = (function () {
   let camera = null,
     get = function () {
@@ -128,14 +134,14 @@ let CameraManager = (function () {
     move = function (x, y) {
       camera.raw_x = x;
       camera.raw_y = y;
-      camera.x = camera.raw_x;// - camera.left_margin;
-      camera.y = camera.raw_y;// - camera.top_margin;
+      camera.x = camera.raw_x;
+      camera.y = camera.raw_y;
     },
     resize = function (width, height) {
       camera.raw_width = width;
       camera.raw_height = height;
-      camera.width = camera.raw_width;// + camera.right_margin,
-      camera.height = camera.raw_height;// + camera.bottom_margin;
+      camera.width = camera.raw_width;
+      camera.height = camera.raw_height;
     },
     init = function (config_manager) {
       console.log("CameraManager init.");
@@ -148,10 +154,10 @@ let CameraManager = (function () {
         raw_y: camera_config.y,
         raw_width: camera_config.width,
         raw_height: camera_config.height,
-        x: camera_config.x,// - camera_config.left_margin,
-        y: camera_config.y,// - camera_config.top_margin,
-        width: camera_config.width,// + camera_config.right_margin,
-        height: camera_config.height,// + camera_config.bottom_margin,
+        x: camera_config.x,
+        y: camera_config.y,
+        width: camera_config.width,
+        height: camera_config.height,
         top_margin: camera_config.top_margin,
         bottom_margin: camera_config.bottom_margin,
         left_margin: camera_config.left_margin,
@@ -171,6 +177,8 @@ let CameraManager = (function () {
     };
   }
 })();
+
+
 
 let ResourceManager = (function () {
   let image_base_url = null,
@@ -257,6 +265,8 @@ let ResourceManager = (function () {
   };
 })();
 
+
+
 let ControlManager = (function () {
   let controls = {},
     get_controls = function () {
@@ -289,6 +299,8 @@ let ControlManager = (function () {
     };
   };
 })();
+
+
 
 let MapManager = (function () {
   let maps = null,
@@ -329,8 +341,8 @@ let MapManager = (function () {
     get_quadtree = function (map, leaf_size) {
       leaf_size = leaf_size || 25;
       map = map || maps[current_map_id];
-      // iterate over map and produce quadtree
 
+      // iterate over map and produce quadtree
       let tree = build_quadtree(0, 0, map.width, map.height, leaf_size),
         entities = null;
       for (i in map.layers) {
@@ -370,6 +382,8 @@ let MapManager = (function () {
     };
   };
 })();
+
+
 
 let PlayerManager = (function () {
   let player = null,
@@ -470,6 +484,8 @@ let PlayerManager = (function () {
   };
 })();
 
+
+
 let PhysicsManager = (function () {
   let physics = null,
     to_rect = function (entity) {
@@ -489,21 +505,6 @@ let PhysicsManager = (function () {
         hypotenuse = Math.sqrt(
           x_distance * x_distance + y_distance * y_distance
         );
-
-        debug = debug || false;
-        if (debug) {
-          console.log("r1");
-          console.log(rect_one);
-          console.log("r2");
-          console.log(rect_two);
-          console.log("xd");
-          console.log(x_distance);
-          console.log("yd");
-          console.log(y_distance);
-          console.log("hyp");
-          console.log(hypotenuse);
-          debugger;
-        }
 
         return hypotenuse;
     },
@@ -530,6 +531,8 @@ let PhysicsManager = (function () {
   };
 })();
 
+
+
 let EntityManager = (function () {
   let entities = null,
     player = null,
@@ -544,7 +547,7 @@ let EntityManager = (function () {
     last_particle_added = null,
     game_state = null,
     stale_entities = function () {
-      let debug = true; // TODO: make a debug manager
+      let debug = true;
       let stale = current_map_id !== maps.get_current_map_id();
       if (debug && stale) {
         console.log("found stale entities.");
@@ -608,7 +611,7 @@ let EntityManager = (function () {
       quadtree_insert(tree, entity);
     },
     add_entity = function (entity) {
-      quadtree_insert(tree, entity); // TODO: continue thinking about dynamic entities
+      quadtree_insert(tree, entity);
     },
     remove_entity = function (id) {
       quadtree_remove_by_id(tree, id);
@@ -676,6 +679,8 @@ let EntityManager = (function () {
     };
   };
 })();
+
+
 
 let RenderManager = (function () {
   let context = null,
@@ -746,6 +751,8 @@ let RenderManager = (function () {
     };
   }
 })();
+
+
 
 let GameManager = (function () {
   let config_manager = null,
