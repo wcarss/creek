@@ -330,7 +330,10 @@ let MapManager = (function () {
         if (maps[current_map_id].deinit) {
           maps[current_map_id].deinit(entity_manager);
         }
+
+        // actually change the map
         current_map_id = map_id;
+
         // setup actions in new map (if any)
         if (maps[current_map_id].init) {
           maps[current_map_id].init(entity_manager);
@@ -463,12 +466,6 @@ let PlayerManager = (function () {
     init = function (config, _controls) {
       controls = _controls;
       player = config.get_player();
-      // TODO: fix this when map-load actions are implemented
-      let local_config = config.get_config(),
-        initial_map = local_config.initial_map_id,
-        player_layer = local_config.maps[initial_map].player_layer;
-
-      player.layer = player_layer;
     };
 
   return function (config, _controls) {
@@ -598,8 +595,9 @@ let EntityManager = (function () {
 
       current_map_id = current_map.id;
 
-      // paste the player layer into the correct spot
+      // paste the player layer into the correct spot and update player
       layers.splice(current_map.player_layer, 0, [player.get_player()]);
+      player.modify_player('layer', current_map.player_layer);
       tree = maps.get_quadtree(current_map);
       layers.splice(current_map.player_layer, 1);
       entities = get_entities();
