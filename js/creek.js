@@ -574,6 +574,7 @@ let PhysicsManager = (function () {
 
 let EntityManager = (function () {
   let entities = null,
+    texts = null,
     player = null,
     camera_manager = null,
     camera = null,
@@ -631,6 +632,9 @@ let EntityManager = (function () {
         }
       );
     },
+    get_texts = function () {
+      return texts;
+    },
     setup_entities = function () {
       let current_map = maps.get_map(),
         layers = current_map.layers;
@@ -656,6 +660,25 @@ let EntityManager = (function () {
     remove_entity = function (id) {
       quadtree_remove_by_id(tree, id);
     },
+    add_text = function (text) {
+      text.offset_type = text.offset_type || "camera";
+      text.font = text.font || "16px sans";
+      text.color = text.color || "black";
+      texts.push(text);
+    },
+    remove_text = function (id) {
+      let to_remove = -1;
+
+      for (i in texts) {
+        if (texts[i].id === id) {
+          to_remove = i;
+        }
+      }
+
+      if (to_remove !== -1) {
+        texts.splice(i, 1);
+      }
+    }
     collide = function (entity) {
       let collisions = [], target = null;
       if (stale_entities()) {
@@ -686,6 +709,12 @@ let EntityManager = (function () {
       player.update(delta, this);
       maps.update(delta, this);
       game_state.update(delta, this);
+
+      for (i in texts) {
+        if (texts[i].update) {
+          texts[i].update(delta, this);
+        }
+      }
     },
     init = function (_controls, _player, _camera, _maps, _physics, _game) {
       controls = _controls;
@@ -696,6 +725,7 @@ let EntityManager = (function () {
       physics = _physics;
       game_state = _game;
       last_particle_added = performance.now();
+      texts = [];
       setup_entities();
     };
 
@@ -716,6 +746,9 @@ let EntityManager = (function () {
       collide: collide,
       move_entity: move_entity,
       add_entity: add_entity,
+      add_text: add_text,
+      get_texts: get_texts,
+      remove_text: remove_text,
     };
   };
 })();
@@ -755,13 +788,27 @@ let RenderManager = (function () {
         );
       }
     },
+    text_draw = function (text, context, delta, offset) {
+      let x = text.x,
+        y = text.y;
+
+      if (text.offset_type !== "camera") {
+        x = x - offset.x;
+        y = y - offset.y;
+      }
+
+      context.fillStyle = text.color;
+      context.font = text.font;
+      context.fillText(text.text, x, y);
+    },
     next_frame = function () {
       current_time = performance.now();
       let delta = ((current_time - last_time)/1000) * frames_per_second;
       last_time = current_time;
 
       let world_offset = entities.get_camera_manager().get_offset(),
-        draw_list = entities.get_entities();
+        draw_list = entities.get_entities(),
+        text_list = entities.get_texts();
       let canvas = context_manager.get_canvas(),
         render_width = canvas.width,
         render_height = canvas.height,
@@ -769,6 +816,9 @@ let RenderManager = (function () {
 
       for (i in draw_list) {
         draw(draw_list[i], context, delta, world_offset);
+      }
+      for (i in text_list) {
+        text_draw(text_list[i], context, delta, world_offset);
       }
       entities.update(delta);
 

@@ -3,12 +3,42 @@ let config_spec = {
     "init": function (entity_manager, control_manager, map_manager, player_manager) {
       this.particle_count = 0;
       this.last_particle_added = performance.now();
+      this.player = player_manager.get_player();
+      this.xy_text = {
+        id: "xy",
+        text: "x, y: " + this.player.x + ", " + this.player.y,
+        x: 10, //this.player.x.toFixed(3),
+        y: 20, //this.player.y.toFixed(3),
+        offset_type: "camera",
+        font: "14px sans",
+        color: "white",
+        update: function (delta, entity_manager) {
+          let player = entity_manager.get_player_manager().get_player();
+          this.text = "x, y: " + player.x.toFixed(3) + ", " + player.y.toFixed(3);
+        },
+      };
+      this.map_text = {
+        id: "map",
+        text: "map: " + map_manager.get_current_map_id,
+        x: 10,
+        y: 38,
+        offset_type: "camera",
+        font: "14px sans",
+        color: "white",
+        update: function (delta, entity_manager) {
+          this.text = "map: " + entity_manager.get_map_manager().get_current_map_id();
+        },
+      }
+      entity_manager.add_text(this.xy_text);
+      entity_manager.add_text(this.map_text);
     },
     "update": function (delta, entity_manager) {
       let control_manager = entity_manager.get_control_manager(),
         map_manager = entity_manager.get_map_manager(),
         player_manager = entity_manager.get_player_manager(),
-        keys = control_manager.get_controls();
+        player = player_manager.get_player(),
+        keys = control_manager.get_controls(),
+        lol_text = null;
 
       if (keys['KeyM']) {
         // should build a means to cycle that doesn't rely on hardcoding an if-ladder
@@ -22,6 +52,30 @@ let config_spec = {
           map_manager.change_maps("map1", entity_manager);
         }
         player_manager.modify_player('layer', map_manager.get_map().player_layer);
+      } else if (keys['KeyL']) {
+        if (this.loling) {
+          entity_manager.remove_text("lol");
+          this.loling = false;
+        } else {
+          lol_text = {
+            id: "lol",
+            text: "lol",
+            x: player.x,
+            y: player.y,
+            rando_x: Math.random() * 5 - 2.5,
+            rando_y: Math.random() * 5 - 2.5,
+            offset_type: "world",
+            font: "20px serif",
+            color: "white",
+            update: function (delta, entity_manager) {
+              let player = entity_manager.get_player_manager().get_player();
+              this.x = player.x+this.rando_x;
+              this.y = player.y+this.rando_y;
+            },
+          }
+          entity_manager.add_text(lol_text);
+          this.loling = true;
+        }
       } else if (keys['KeyZ']) {
         if (performance.now() - this.last_particle_added > 200) {
           this.particle_count += 1;
