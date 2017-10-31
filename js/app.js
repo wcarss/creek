@@ -22,6 +22,64 @@ let ConfigManager = (function (url) {
   map_field.layers.unshift([map_bg]);
   let config = null,
     config_spec = {
+      "game": {
+        "init": function (entity_manager, control_manager, map_manager, player_manager) {
+          this.particle_count = 0;
+          this.last_particle_added = performance.now();
+        },
+        "update": function (delta, entity_manager) {
+          let control_manager = entity_manager.get_control_manager(),
+            map_manager = entity_manager.get_map_manager(),
+            player_manager = entity_manager.get_player_manager(),
+            keys = control_manager.get_controls();
+
+          if (keys['KeyM']) {
+            // should build a means to cycle that doesn't rely on hardcoding an if-ladder
+            if (map_manager.get_current_map_id() === "map1") {
+              map_manager.change_maps("map2", entity_manager);
+            } else if (map_manager.get_current_map_id() === "map2") {
+              map_manager.change_maps("map_field", entity_manager);
+            } else if (map_manager.get_current_map_id() === 'map_field'){
+              map_manager.change_maps('map_test', entity_manager);
+            } else {
+              map_manager.change_maps("map1", entity_manager);
+            }
+            player_manager.modify_player('layer', map_manager.get_map().player_layer);
+          } else if (keys['KeyZ']) {
+            if (performance.now() - this.last_particle_added > 200) {
+              this.particle_count += 1;
+              this.last_particle_added = performance.now();
+
+              entity_manager.add_entity({
+                'x': Math.random()*500,
+                'y': Math.random()*500,
+                'x_scale': 1,
+                'y_scale': 1,
+                'x_size': 10,
+                'y_size': 10,
+                'x_velocity': Math.random()*50-25,
+                'y_velocity': Math.random()*50-25,
+                'layer': 1.5,
+                'id': 'projectile' + this.particle_count,
+                'img': "particle",
+                'x_acceleration': 2,
+                'x_acceleration': 2,
+                'update': function (delta, et) {
+                  this.x += this.x_velocity * delta;
+                  this.y += this.y_velocity * delta;
+                  this.x_velocity *= 0.8;
+                  this.y_velocity *= 0.8;
+                  if (Math.random() > 0.95) {
+                    this.x_velocity += Math.random() * 50 - 25;
+                    this.y_velocity += Math.random() * 50 - 25;
+                  }
+                  et.move_entity(this, this.x, this.y);
+                }
+              });
+            }
+          }
+        }
+      },
       "canvas_id": "canvas",
       "frames_per_second": 40,
       "resource_url": "resources.json",
@@ -63,6 +121,14 @@ let ConfigManager = (function (url) {
           "width": 600,
           "id": "map1",
           "player_layer": 2,
+          "init": function (entity_manager) {
+            console.log("map " + this.id + ": initialized");
+            console.log(entity_manager);
+          },
+          "deinit": function (entity_manager) {
+            console.log("map " + this.id + ": de-initialized");
+            console.log(entity_manager);
+          },
           "layers": [
             [
               {
@@ -368,7 +434,20 @@ let ConfigManager = (function (url) {
     },
     get_maps = function () {
       return config.maps;
-    };
+    },
+    get_game_state = function () {
+      let state = {
+        init: function () {},
+        update: function () {},
+      };
+
+      if (config.game) {
+        state.init = config.game.init || state.init;
+        state.update = config.game.update || state.update;
+      }
+
+      return state;
+    }
 
   config = config_spec;
 
@@ -378,6 +457,7 @@ let ConfigManager = (function (url) {
       set_config: set,
       get_player: get_player,
       get_maps: get_maps,
+      get_game_state: get_game_state,
     };
   };
 })();
@@ -448,6 +528,8 @@ let CameraManager = (function () {
       camera.height = camera.raw_height;// + camera.bottom_margin;
     },
     init = function (config_manager) {
+      console.log("CameraManager init.");
+
       let config = config_manager.get_config(),
         camera_config = config['camera'];
 
@@ -695,16 +777,25 @@ let MapManager = (function () {
     },
     get_map = function (map_id) {
       map_id = map_id || current_map_id;
-      console.log("map_id is " + map_id);
       return maps[map_id];
     },
     get_maps = function () {
       return maps;
     },
-    change_maps = function (map_id) {
+    change_maps = function (map_id, entity_manager) {
       let now = performance.now();
+
+      // only change maps every min_change_time ms
       if (now - last_change_time > min_change_time) {
+        // teardown actions in old map (if any)
+        if (maps[current_map_id].deinit) {
+          maps[current_map_id].deinit(entity_manager);
+        }
         current_map_id = map_id;
+        // setup actions in new map (if any)
+        if (maps[current_map_id].init) {
+          maps[current_map_id].init(entity_manager);
+        }
         last_change_time = now;
       }
     },
@@ -723,6 +814,11 @@ let MapManager = (function () {
       }
 
       return tree;
+    },
+    update = function (delta, entity_manager) {
+      if (maps[current_map_id].update) {
+        maps[current_map_id].update(delta, entity_manager);
+      }
     },
     init = function (config_manager) {
       config = config_manager.get_config();
@@ -743,6 +839,7 @@ let MapManager = (function () {
       get_quadtree: get_quadtree,
       get_maps: get_maps,
       get_current_map_id: get_current_map_id,
+      update: update,
     };
   };
 })();
@@ -890,6 +987,8 @@ let PhysicsManager = (function () {
       return (rect_distance <= rect_one.collide_distance+rect_two.collide_distance);
     },
     init = function () {
+      console.log("PhysicsManager init.");
+
       physics = {};
     };
 
@@ -915,6 +1014,7 @@ let EntityManager = (function () {
     tree = null,
     particle_count = 0,
     last_particle_added = null,
+    game_state = null,
     stale_entities = function () {
       let debug = true; // TODO: make a debug manager
       let stale = current_map_id !== maps.get_current_map_id();
@@ -932,6 +1032,12 @@ let EntityManager = (function () {
     },
     get_player_manager = function () {
       return player;
+    },
+    get_map_manager = function () {
+      return maps;
+    },
+    get_control_manager = function () {
+      return controls;
     },
     get_camera_manager = function () {
       return camera_manager;
@@ -995,53 +1101,6 @@ let EntityManager = (function () {
       return collisions;
     },
     update = function (delta) {
-      let keys = controls.get_controls();
-      if (keys['KeyM']) {
-        // should build a means to cycle that doesn't rely on hardcoding an if-ladder
-        if (maps.get_current_map_id() === "map1") {
-          maps.change_maps("map2");
-        } else if (maps.get_current_map_id() === "map2") {
-          maps.change_maps("map_field");
-        } else if (maps.get_current_map_id() === 'map_field'){
-          maps.change_maps('map_test');
-        } else {
-          maps.change_maps("map1");
-        }
-        player.modify_player('layer', maps.get_map().player_layer);
-      } else if (keys['KeyZ']) {
-        if (performance.now() - last_particle_added > 100) {
-          particle_count += 1;
-          last_particle_added = performance.now();
-
-          add_entity({
-            'x': Math.random()*500,
-            'y': Math.random()*500,
-            'x_scale': 1,
-            'y_scale': 1,
-            'x_size': 10,
-            'y_size': 10,
-            'x_velocity': Math.random()*50-25,
-            'y_velocity': Math.random()*50-25,
-            'layer': 1.5,
-            'id': 'projectile' + particle_count,
-            'img': "particle",
-            'x_acceleration': 2,
-            'x_acceleration': 2,
-            'update': function (delta, et) {
-              this.x += this.x_velocity * delta;
-              this.y += this.y_velocity * delta;
-              this.x_velocity *= 0.8;
-              this.y_velocity *= 0.8;
-              if (Math.random() > 0.95) {
-                this.x_velocity += Math.random() * 50 - 25;
-                this.y_velocity += Math.random() * 50 - 25;
-              }
-              et.move_entity(this, this.x, this.y);
-            }
-          });
-        }
-      }
-
       if (stale_entities()) {
         setup_entities();
       }
@@ -1054,32 +1113,38 @@ let EntityManager = (function () {
       }
 
       player.update(delta, this);
+      maps.update(delta, this);
+      game_state.update(delta, this);
     },
-    init = function (_controls, _player, _camera, _maps, _physics) {
+    init = function (_controls, _player, _camera, _maps, _physics, _game) {
       controls = _controls;
       let tp = player = _player;
       camera_manager = _camera;
       camera = _camera.get();
       maps = _maps;
       physics = _physics;
+      game_state = _game;
       last_particle_added = performance.now();
       setup_entities();
     };
 
-  return function (_controls, _player, _camera, _maps, _physics) {
-    init(_controls, _player, _camera, _maps, _physics);
+  return function (_controls, _player, _camera, _maps, _physics, _game) {
+    init(_controls, _player, _camera, _maps, _physics, _game);
     console.log("EntityManager init.");
 
     return {
       get_entities: get_entities,
       get_entity: get_entity,
       get_player_manager: get_player_manager,
+      get_map_manager: get_map_manager,
+      get_control_manager: get_control_manager,
       get_camera_manager: get_camera_manager,
       stale_entities: stale_entities,
       setup_entities: setup_entities,
       update: update,
       collide: collide,
       move_entity: move_entity,
+      add_entity: add_entity,
     };
   };
 })();
@@ -1091,7 +1156,7 @@ let RenderManager = (function () {
     last_time = performance.now(),
     current_time = performance.now(),
     entities = null,
-    resources = null;
+    resources = null,
 
     set_context = function (passed_context) {
       context_manager = passed_context;
@@ -1165,11 +1230,14 @@ let GameManager = (function () {
     render_manager = null,
     physics_manager= null,
     start_game = function () {
-      console.log("the loop would now begin.");
+      game_state.init(
+        entity_manager, control_manager, map_manager, player_manager
+      );
       render_manager.next_frame();
     },
     init = function (config_url) {
       config_manager = ConfigManager(config_url);
+      game_state = config_manager.get_game_state();
 
       physics_manager = PhysicsManager();
       control_manager = ControlManager();
@@ -1181,7 +1249,8 @@ let GameManager = (function () {
         player_manager,
         camera_manager,
         map_manager,
-        physics_manager
+        physics_manager,
+        game_state,
       );
 
       context_manager = ContextManager(config_manager);
@@ -1199,7 +1268,7 @@ let GameManager = (function () {
     console.log("GameManager init.");
 
     return {
-      start_game: start_game
+      start_game: start_game,
     };
   };
 })();
