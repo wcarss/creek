@@ -37,6 +37,9 @@ let ConfigManager = (function (url) {
     get_maps = function () {
       return config.maps;
     },
+    get_resources = function () {
+      return config.resources;
+    },
     get_game_state = function () {
       let state = {
         init: function () {},
@@ -64,6 +67,7 @@ let ConfigManager = (function (url) {
       get_player: get_player,
       get_maps: get_maps,
       get_game_state: get_game_state,
+      get_resources: get_resources,
     };
   };
 })();
@@ -174,10 +178,7 @@ let ResourceManager = (function () {
       'image': {},
       'sound': {},
     },
-    parse = function (in_file) {
-      return JSON.parse(in_file);
-    },
-    load = function (list) {
+    load = function (parsed_resources) {
       let promises = [],
         load_resource = function (resource) {
           let load_image = function (resource) {
@@ -216,7 +217,6 @@ let ResourceManager = (function () {
           return resource;
         };
 
-      parsed_resources = parse(list)['resources'];
       for (parsed_index in parsed_resources) {
         resource = parsed_resources[parsed_index];
         promises.push(load_resource(resource));
@@ -242,90 +242,11 @@ let ResourceManager = (function () {
       return resources['image'][name];
     },
     init = function (config) {
-      // TODO: use url to get list
-      // url = config.get_config().resources.url
-      url = {"resources":
-        [
-          {
-            "type": "image",
-            "url": "resources/images/player.png",
-            "id": "player",
-            "source_x": 0,
-            "source_y": 0,
-            "source_width": 26,
-            "source_height": 32,
-          },
-          {
-            "type": "image",
-            "url": "resources/images/dirt.png",
-            "id": "dirt",
-            "source_x": 0,
-            "source_y": 0,
-            "source_width": 64,
-            "source_height": 64,
-          },
-          {
-            "type": "image",
-            "url": "resources/images/grass.png",
-            "id": "grass",
-            "source_x": 0,
-            "source_y": 0,
-            "source_width": 64,
-            "source_height": 64,
-          },
-          {
-            "type": "image",
-            "url": "resources/images/coin.png",
-            "id": "coin",
-            "source_x": 0,
-            "source_y": 0,
-            "source_width": 48,
-            "source_height": 48,
-          },
-          {
-            "type": "image",
-            "url": "resources/images/water.png",
-            "id": "water",
-            "source_x": 0,
-            "source_y": 0,
-            "source_width": 64,
-            "source_height": 64,
-          },
-          {
-            "type": "image",
-            "url": "resources/images/bg.png",
-            "id": "bg",
-            "source_x": 0,
-            "source_y": 0,
-            "source_width": 500,
-            "source_height": 500,
-          },
-          {
-            "type": "image",
-            "url": "resources/images/particle.png",
-            "id": "particle",
-            "source_x": 0,
-            "source_y": 0,
-            "source_width": 10,
-            "source_height": 10,
-          },
-          {
-            "type": "image",
-            "url": "resources/images/tileset.png",
-            "id": "tileset",
-            "source_x": 0,
-            "source_y": 0,
-            "source_width": 480,
-            "source_height": 256,
-          },
-        ]
-      };
-      load(JSON.stringify(url));
+      load(config.get_resources());
     };
 
-
-  return function (config) {
-    init(config);
+  return function (config_manager) {
+    init(config_manager);
     console.log("ResourceManager init.");
 
     return {

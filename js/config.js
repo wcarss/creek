@@ -391,5 +391,79 @@ let config_spec = {
         ]     // layer
       ]       // array of layers
     },        // map object
-  }           // maps object
+  },          // maps object
+  "resources": [
+    {
+      "type": "image",
+      "url": "resources/images/player.png",
+      "id": "player",
+      "source_x": 0,
+      "source_y": 0,
+      "source_width": 26,
+      "source_height": 32,
+    },
+    {
+      "type": "image",
+      "url": "resources/images/dirt.png",
+      "id": "dirt",
+      "source_x": 0,
+      "source_y": 0,
+      "source_width": 64,
+      "source_height": 64,
+    },
+    {
+      "type": "image",
+      "url": "resources/images/grass.png",
+      "id": "grass",
+      "source_x": 0,
+      "source_y": 0,
+      "source_width": 64,
+      "source_height": 64,
+    },
+    {
+      "type": "image",
+      "url": "resources/images/coin.png",
+      "id": "coin",
+      "source_x": 0,
+      "source_y": 0,
+      "source_width": 48,
+      "source_height": 48,
+    },
+    {
+      "type": "image",
+      "url": "resources/images/water.png",
+      "id": "water",
+      "source_x": 0,
+      "source_y": 0,
+      "source_width": 64,
+      "source_height": 64,
+    },
+    {
+      "type": "image",
+      "url": "resources/images/bg.png",
+      "id": "bg",
+      "source_x": 0,
+      "source_y": 0,
+      "source_width": 500,
+      "source_height": 500,
+    },
+    {
+      "type": "image",
+      "url": "resources/images/particle.png",
+      "id": "particle",
+      "source_x": 0,
+      "source_y": 0,
+      "source_width": 10,
+      "source_height": 10,
+    },
+    {
+      "type": "image",
+      "url": "resources/images/tileset.png",
+      "id": "tileset",
+      "source_x": 0,
+      "source_y": 0,
+      "source_width": 480,
+      "source_height": 256,
+    },
+  ],          // resources array
 };            // config object
