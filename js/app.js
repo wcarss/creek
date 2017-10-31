@@ -186,48 +186,52 @@ let ResourceManager = (function () {
       'image': {},
       'sound': {},
     },
-    load = function (parsed_resources) {
-      let promises = [],
-        load_resource = function (resource) {
-          let load_image = function (resource) {
-            let img = new Image(),
-              promise = new Promise(
-                function(resolve, reject) {
-                  img.addEventListener("load", function () {
-                    console.log("image filename " + resource.url + " loaded.");
-                    resolve({
-                      "type": resource.type,
-                      "id": resource.id,
-                      "url": resource.url,
-                      "img": img,
-                      "source_x": resource.source_x,
-                      "source_y": resource.source_y,
-                      "source_width": resource.source_width,
-                      "source_height": resource.source_height,
-                    });
-                  }, false);
-                  img.addEventListener("error", function () {
-                    console.log("image filename " + resource.url + " failed to load.");
-                    reject();
-                  }, false);
-                }
-              );
-            img.src = resource.url;
-            return promise;
-          };
+    get_resources = function () {
+      return resources;
+    },
+    get_image = function (name) {
+      return resources['image'][name];
+    },
+    load_image = function (resource) {
+      let img = new Image();
+      let promise = new Promise(
+        function(resolve, reject) {
+          img.addEventListener("load", function () {
+            console.log("image " + resource.url + " loaded.");
+            resolve({
+              "type": resource.type,
+              "id": resource.id,
+              "url": resource.url,
+              "img": img,
+              "source_x": resource.source_x,
+              "source_y": resource.source_y,
+              "source_width": resource.source_width,
+              "source_height": resource.source_height,
+            });
+          }, false);
+          img.addEventListener("error", function () {
+            console.log("image " + resource.url + " failed to load.");
+            reject();
+          }, false);
+        }
+      );
+      img.src = resource.url;
+      return promise;
+    },
+    init = function (config) {
+      let parsed_resources = config.get_resources(),
+        resource = null,
+        promises = [];
 
-          if (resource.type === 'image') {
-            resource = load_image(resource);
-          } else {
-            console.log("attempted to load unsupported resource type: " + resource.type);
-          }
+      for (i in parsed_resources) {
+        resource = parsed_resources[i];
 
-          return resource;
-        };
-
-      for (parsed_index in parsed_resources) {
-        resource = parsed_resources[parsed_index];
-        promises.push(load_resource(resource));
+        if (resource.type === 'image') {
+          resource_promise = load_image(resource);
+          promises.push(resource_promise);
+        } else {
+          console.log("tried to load unknown resource type: " + resource.type);
+        }
       }
 
       Promise.all(promises).then(
@@ -242,15 +246,6 @@ let ResourceManager = (function () {
           console.log("trouble loading resources.");
         }
       );
-    },
-    get_resources = function () {
-      return resources;
-    },
-    get_image = function (name) {
-      return resources['image'][name];
-    },
-    init = function (config) {
-      load(config.get_resources());
     };
 
   return function (config_manager) {
@@ -258,7 +253,6 @@ let ResourceManager = (function () {
     console.log("ResourceManager init.");
 
     return {
-      load: load,
       get_resources: get_resources,
       get_image: get_image,
     };
