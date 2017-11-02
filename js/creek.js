@@ -21,8 +21,10 @@ let GameManager = (function () {
 
       physics_manager = PhysicsManager();
       control_manager = ControlManager();
+      context_manager = ContextManager(config_manager);
+
       player_manager = PlayerManager(config_manager, control_manager);
-      camera_manager = CameraManager(config_manager);
+      camera_manager = CameraManager(config_manager, context_manager);
       map_manager = MapManager(config_manager);
       entity_manager = EntityManager(
         control_manager,
@@ -33,7 +35,6 @@ let GameManager = (function () {
         game_state,
       );
 
-      context_manager = ContextManager(config_manager);
       resource_manager = ResourceManager(config_manager);
       render_manager = RenderManager(
         config_manager,
@@ -127,11 +128,22 @@ let ConfigManager = (function () {
 let ContextManager = (function () {
   let context = null,
     canvas = null,
+    fullscreen = false,
+    width = 0,
+    height = 0,
+    canvas_id = "",
+    stage_id = "",
     get_context = function () {
       return context;
     },
     get_canvas = function () {
       return canvas;
+    },
+    get_width = function () {
+      return width;
+    },
+    get_height = function () {
+      return height;
     },
     set_context = function (new_context) {
       context = new_context;
@@ -142,13 +154,50 @@ let ContextManager = (function () {
       context = canvas.getContext("2d");
       return canvas;
     },
-    init = function (config) {
-      let id = config.get_config()['canvas_id'];
-      set_canvas(document.getElementById(id));
+    resize = function (event, x_size, y_size) {
+      width = x_size || max_width();
+      height = y_size || max_height();
+      canvas.width = width;
+      canvas.height = height;
+      set_canvas(canvas);
+    },
+    make_fullscreen = function () {
+      window.addEventListener("resize", resize);
+    },
+    stop_fullscreen = function () {
+      window.removeEventListener("resize", resize);
+      resize(null, width, height);
+    },
+    max_height = function () {
+      let height_fudge = 4;
+      return document.body.clientHeight - height_fudge;
+    },
+    max_width = function () {
+      return document.body.clientWidth;
+    },
+    init = function (config_manager) {
+      let config = config_manager.get_config();
+      canvas_id = config.canvas_id || "canvas";
+      stage_id = config.stage_id || "stage";
+      width = config.width || max_width();
+      height = config.height || max_height();
+      fullscreen = config.fullscreen || false;
+
+      stage = document.getElementById("stage");
+      canvas = document.createElement("canvas");
+      canvas.id = canvas_id;
+
+      stage.appendChild(canvas);
+      resize(null, width, height);
+      if (fullscreen === true) {
+        make_fullscreen();
+      }
+
+      set_canvas(canvas);
     };
 
-  return function (config) {
-    init(config);
+  return function (config_manager) {
+    init(config_manager);
     console.log("ContextManager init.");
 
     return {
@@ -156,6 +205,8 @@ let ContextManager = (function () {
       get_canvas: get_canvas,
       set_context: set_context,
       set_canvas: set_canvas,
+      get_width: get_width,
+      get_height: get_height,
     };
   };
 })();
@@ -164,7 +215,8 @@ let ContextManager = (function () {
 
 let CameraManager = (function () {
   let camera = null,
-    get = function () {
+    fullscreen = null,
+    get_camera = function () {
       return camera;
     },
     get_offset = function () {
@@ -180,6 +232,10 @@ let CameraManager = (function () {
       move(offset_x, offset_y);
     },
     move = function (x, y) {
+      if (fullscreen) {
+        resize(context_manager.get_width(), context_manager.get_height());
+      }
+
       camera.raw_x = x;
       camera.raw_y = y;
       camera.x = camera.raw_x;
@@ -191,21 +247,32 @@ let CameraManager = (function () {
       camera.width = camera.raw_width;
       camera.height = camera.raw_height;
     },
-    init = function (config_manager) {
+    init = function (config_manager, _context_manager) {
       console.log("CameraManager init.");
 
       let config = config_manager.get_config(),
-        camera_config = config['camera'];
+        camera_config = config.camera,
+        width = camera_config.width,
+        height = camera_config.height;
+
+      fullscreen = config.fullscreen || false;
+
+      context_manager = _context_manager;
+
+      if (fullscreen) {
+        width = context_manager.get_width();
+        height = context_manager.get_height();
+      }
 
       camera = {
         raw_x: camera_config.x,
         raw_y: camera_config.y,
-        raw_width: camera_config.width,
-        raw_height: camera_config.height,
+        raw_width: width,
+        raw_height: height,
         x: camera_config.x,
         y: camera_config.y,
-        width: camera_config.width,
-        height: camera_config.height,
+        width: width,
+        height: height,
         top_margin: camera_config.top_margin,
         bottom_margin: camera_config.bottom_margin,
         left_margin: camera_config.left_margin,
@@ -213,11 +280,11 @@ let CameraManager = (function () {
       };
     };
 
-  return function (config_manager) {
-    init(config_manager);
+  return function (config_manager, _context_manager) {
+    init(config_manager, _context_manager);
 
     return {
-      get: get,
+      get_camera: get_camera,
       get_offset: get_offset,
       move: move,
       resize: resize,
@@ -577,7 +644,6 @@ let EntityManager = (function () {
     texts = null,
     player = null,
     camera_manager = null,
-    camera = null,
     controls = null,
     maps = null,
     current_map_id = null,
@@ -614,7 +680,8 @@ let EntityManager = (function () {
       return camera_manager;
     },
     get_entities = function () {
-      let x = camera.x-camera.left_margin,
+      let camera = camera_manager.get_camera(),
+        x = camera.x-camera.left_margin,
         y = camera.y-camera.top_margin,
         width = camera.width+camera.right_margin,
         height = camera.height+camera.bottom_margin;
@@ -720,7 +787,6 @@ let EntityManager = (function () {
       controls = _controls;
       let tp = player = _player;
       camera_manager = _camera;
-      camera = _camera.get();
       maps = _maps;
       physics = _physics;
       game_state = _game;
@@ -756,18 +822,14 @@ let EntityManager = (function () {
 
 
 let RenderManager = (function () {
-  let context = null,
-    context_manager = null,
+  let context_manager = null,
     frames_per_second = null,
     last_time = performance.now(),
     current_time = performance.now(),
     entities = null,
     resources = null,
+    stored_count = null,
 
-    set_context = function (passed_context) {
-      context_manager = passed_context;
-      context = passed_context.get_context();
-    },
     draw = function (tile, context, delta, offset) {
       let resource = resources.get_image(tile.img),
         source_x = 0, source_y = 0, source_width = 0, source_height = 0;
@@ -808,10 +870,7 @@ let RenderManager = (function () {
 
       let world_offset = entities.get_camera_manager().get_offset(),
         draw_list = entities.get_entities(),
-        text_list = entities.get_texts();
-      let canvas = context_manager.get_canvas(),
-        render_width = canvas.width,
-        render_height = canvas.height,
+        text_list = entities.get_texts(),
         context = context_manager.get_context();
 
       for (i in draw_list) {
@@ -824,9 +883,9 @@ let RenderManager = (function () {
 
       requestAnimationFrame(next_frame);
     },
-    init = function (config, global_context, _resources, _entities) {
-      set_context(global_context);
-      frames_per_second = config.get_config()['frames_per_second'];
+    init = function (config_manager, _context_manager, _resources, _entities) {
+      frames_per_second = config_manager.get_config()['frames_per_second'];
+      context_manager = _context_manager;
       resources = _resources;
       entities = _entities;
     };
@@ -837,7 +896,6 @@ let RenderManager = (function () {
 
     return {
       next_frame: next_frame,
-      set_context: set_context,
     };
   }
 })();
