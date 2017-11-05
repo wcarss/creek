@@ -117,6 +117,8 @@ let config_spec = {
     }
   },
   "canvas_id": "canvas",
+  "stage_id": "stage",
+  "fullscreen": true,
   "frames_per_second": 40,
   "resource_url": "resources.json",
   "controls": null,

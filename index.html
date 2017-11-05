@@ -1,15 +1,28 @@
 <!doctype html>
-<html>
+<html style="width: 100vw; height: 100vh;">
   <head>
+    <style>
+      * {
+        border: 0;
+        padding: 0;
+        margin: 0;
+        outline: none;
+      }
+
+      html {
+        width: 100vw;
+        height: 100vh;
+      }
+
+      body {
+        width: 100vw;
+        height: 100vh;
+      }
+    </style>
   </head>
   <body>
-    <div id="stage" tabindex=1>
-      <canvas id="canvas" width=500 height=500>your browser does not support canvas and it is required</canvas>
+    <div id="stage" tabindex=1">
     </div>
-    <p>just a testbed!</p>
-    <p>controls: wasd moves the player, m cycle maps, z spawns little critters (limit 1/100ms), and l will make the player lol.</p>
-    <p>You can read the code and see my paragraph-length commit messages at <a href="https://github.com/wcarss/creek">github.com/wcarss/creek</a>.</p>
-
     <script src="js/quadtree.js"></script>
     <script src="resources/maps/field.js"></script>
     <script src="resources/maps/test_map.js"></script>
