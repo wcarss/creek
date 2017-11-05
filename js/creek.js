@@ -175,8 +175,7 @@ let ContextManager = (function () {
       resize(null, width, height);
     },
     max_height = function () {
-      let height_fudge = 4;
-      return document.body.clientHeight - height_fudge;
+      return document.body.clientHeight;
     },
     max_width = function () {
       return document.body.clientWidth;
@@ -192,6 +191,7 @@ let ContextManager = (function () {
       stage = document.getElementById("stage");
       canvas = document.createElement("canvas");
       canvas.id = canvas_id;
+      canvas.style.display = "block";
 
       stage.appendChild(canvas);
       resize(null, width, height);
