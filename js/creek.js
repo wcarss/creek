@@ -29,9 +29,9 @@ let GameManager = (function () {
       ui_manager = UIManager(config_manager, control_manager);
       context_manager = ContextManager(config_manager);
 
-      player_manager = PlayerManager(config_manager, control_manager);
-      camera_manager = CameraManager(config_manager, context_manager);
       map_manager = MapManager(config_manager);
+      player_manager = PlayerManager(config_manager, control_manager, map_manager);
+      camera_manager = CameraManager(config_manager, context_manager, map_manager);
       entity_manager = EntityManager(
         control_manager,
         player_manager,
@@ -221,6 +221,7 @@ let ContextManager = (function () {
 
 let CameraManager = (function () {
   let camera = null,
+    map_manager = null,
     fullscreen = null,
     get_camera = function () {
       return camera;
@@ -242,6 +243,10 @@ let CameraManager = (function () {
         resize(context_manager.get_width(), context_manager.get_height());
       }
 
+      let bounds = map_manager.get_bounds();
+      x = clamp(x, bounds.x, bounds.width);
+      y = clamp(y, bounds.y, bounds.width);
+
       camera.raw_x = x;
       camera.raw_y = y;
       camera.x = camera.raw_x;
@@ -253,7 +258,7 @@ let CameraManager = (function () {
       camera.width = camera.raw_width;
       camera.height = camera.raw_height;
     },
-    init = function (config_manager, _context_manager) {
+    init = function (config_manager, _context_manager, _map_manager) {
       console.log("CameraManager init.");
 
       let config = config_manager.get_config(),
@@ -263,6 +268,7 @@ let CameraManager = (function () {
 
       fullscreen = config.fullscreen || false;
 
+      map_manager = _map_manager;
       context_manager = _context_manager;
 
       if (fullscreen) {
@@ -286,8 +292,8 @@ let CameraManager = (function () {
       };
     };
 
-  return function (config_manager, _context_manager) {
-    init(config_manager, _context_manager);
+  return function (config_manager, _context_manager, _map_manager) {
+    init(config_manager, _context_manager, _map_manager);
 
     return {
       get_camera: get_camera,
@@ -606,6 +612,15 @@ let MapManager = (function () {
     get_maps = function () {
       return maps;
     },
+    get_bounds = function () {
+      let map = maps[current_map_id];
+      return {
+        x: 0,
+        y: 0,
+        width: map.width,
+        height: map.height,
+      };
+    },
     change_maps = function (map_id, entity_manager) {
       let now = performance.now();
 
@@ -663,6 +678,7 @@ let MapManager = (function () {
       get_entities: get_entities,
       change_maps: change_maps,
       get_map: get_map,
+      get_bounds: get_bounds,
       get_quadtree: get_quadtree,
       get_maps: get_maps,
       get_current_map_id: get_current_map_id,
@@ -676,6 +692,7 @@ let MapManager = (function () {
 let PlayerManager = (function () {
   let player = null,
     controls = null,
+    map_manager = null,
     get_player = function () {
       return player;
     },
@@ -718,31 +735,20 @@ let PlayerManager = (function () {
       }
 
       // todo: write generic clamp
-      if (player.x_velocity > player.max_x_velocity) {
-        player.x_velocity = player.max_x_velocity;
-      } else if (player.x_velocity < -player.max_x_velocity) {
-        player.x_velocity = -player.max_x_velocity;
-      }
-      if (player.y_velocity > player.max_y_velocity) {
-        player.y_velocity = player.max_y_velocity;
-      } else if (player.y_velocity < -player.max_y_velocity) {
-        player.y_velocity = -player.max_y_velocity;
-      }
+      player.x_velocity = clamp(
+        player.x_velocity, -player.max_x_velocity, player.max_x_velocity
+      );
+      player.y_velocity = clamp(
+        player.y_velocity, -player.max_y_velocity, player.max_y_velocity
+      );
 
       player.x += delta * player.x_velocity;
       player.y += delta * player.y_velocity;
 
       // todo: the map should probably clamp max/min positions
-      if (player.x > player.max_x) {
-        player.x = player.max_x;
-      } else if (player.x < player.min_x) {
-        player.x = player.min_x;
-      }
-      if (player.y > player.max_y) {
-        player.y = player.max_y;
-      } else if (player.y < player.min_y) {
-        player.y = player.min_y;
-      }
+      let bounds = map_manager.get_bounds();
+      player.x = clamp(player.x, bounds.x, bounds.width - player.x_size);
+      player.y = clamp(player.y, bounds.y, bounds.height - player.y_size);
 
       entity_manager.move_entity(player, player.x, player.y);
       entity_manager.get_camera_manager().center(player.x, player.y);
@@ -752,13 +758,14 @@ let PlayerManager = (function () {
         player.score = 0;
       }
     },
-    init = function (config, _controls) {
+    init = function (config, _controls, _map_manager) {
       controls = _controls;
+      map_manager = _map_manager;
       player = config.get_player();
     };
 
-  return function (config, _controls) {
-    init(config, _controls);
+  return function (config, _controls, _map_manager) {
+    init(config, _controls, _map_manager);
     console.log("PlayerManager init.");
 
     return {
