@@ -1,0 +1,5 @@
+how to do UI?
+- probably something like:
+  - implement a UI manager that will define buttons and register the ids of the buttons defined, out of a configuration section titled 'buttons'. The onclick action of each button will just be to set the state of the tracked button, in the ControlManager, which the UI Manager will have been passed during init.
+  - it's possible that the UI Manager will just collapse into the ControlManager if it isn't doing enough really separate stuff to justify its existence.
+- also need to add mouse state to control manager

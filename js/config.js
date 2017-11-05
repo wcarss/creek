@@ -1,9 +1,14 @@
 let config_spec = {
   "game": {
-    "init": function (entity_manager, control_manager, map_manager, player_manager) {
+    "init": function (entity_manager, control_manager, ui_manager, map_manager, player_manager) {
       this.particle_count = 0;
       this.last_particle_added = performance.now();
       this.player = player_manager.get_player();
+      ui_manager.add_button({
+        id: "map_cycle",
+        x: 15, y: 50, width: 80, height: 30, text: "<p style='margin: 8px 0'>Next Map</p>",
+        background: "black", style: 'color: white; text-align: center'
+      });
       this.xy_text = {
         id: "xy",
         text: "x, y: " + this.player.x + ", " + this.player.y,
@@ -40,7 +45,7 @@ let config_spec = {
         keys = control_manager.get_controls(),
         lol_text = null;
 
-      if (keys['KeyM']) {
+      if (keys.buttons.map_cycle.down) {
         // should build a means to cycle that doesn't rely on hardcoding an if-ladder
         if (map_manager.get_current_map_id() === "map1") {
           map_manager.change_maps("map2", entity_manager);
@@ -52,7 +57,7 @@ let config_spec = {
           map_manager.change_maps("map1", entity_manager);
         }
         player_manager.modify_player('layer', map_manager.get_map().player_layer);
-      } else if (keys['KeyL']) {
+      } else if (keys['KeyL'] && keys['KeyL'].down) {
         if (this.loling) {
           entity_manager.remove_text("lol");
           this.loling = false;
@@ -76,7 +81,7 @@ let config_spec = {
           entity_manager.add_text(lol_text);
           this.loling = true;
         }
-      } else if (keys['KeyZ']) {
+      } else if (keys['KeyZ'] && keys['KeyZ'].down) {
         if (performance.now() - this.last_particle_added > 200) {
           this.particle_count += 1;
           this.last_particle_added = performance.now();

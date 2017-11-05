@@ -1,6 +1,7 @@
 let GameManager = (function () {
   let config_manager = null,
     control_manager = null,
+    ui_manager = null,
     player_manager = null,
     map_manager = null,
     entity_manager = null,
@@ -11,7 +12,11 @@ let GameManager = (function () {
 
     start_game = function () {
       game_state.init(
-        entity_manager, control_manager, map_manager, player_manager
+        entity_manager,
+        control_manager,
+        ui_manager,
+        map_manager,
+        player_manager
       );
       render_manager.next_frame();
     },
@@ -21,6 +26,7 @@ let GameManager = (function () {
 
       physics_manager = PhysicsManager();
       control_manager = ControlManager();
+      ui_manager = UIManager(config_manager, control_manager);
       player_manager = PlayerManager(config_manager, control_manager);
       camera_manager = CameraManager(config_manager);
       map_manager = MapManager(config_manager);
@@ -310,25 +316,90 @@ let ResourceManager = (function () {
 
 
 let ControlManager = (function () {
-  let controls = {},
+  let controls = {
+      buttons: {},
+      mouse: {
+        dragging_at: 0,
+        down_at: 0,
+      },
+    },
     get_controls = function () {
       return controls;
     },
+    add_button = function (button) {
+      controls.buttons[button.id] = button;
+    },
+    remove_button = function (id) {
+      let button = controls.buttons[id];
+
+      if (button) {
+        delete controls.buttons[id];
+      }
+    },
+    set_button = function (id, key, value) {
+      let button = controls.buttons[id];
+      if (button) {
+        button.key = value;
+        if (key === 'hover') {
+          if (value === true) {
+            button.hover = true;
+            button.hover_at = performance.now();
+          } else {
+            button.hover = false;
+            button.hovered_at = performance.now();
+          }
+        } else if (key === 'down') {
+          if (value === true) {
+            button.down = true;
+            button.down_at = performance.now();
+          } else {
+            button.down = false;
+            button.up_at = performance.now();
+          }
+        }
+      }
+    },
     init = function (_config) {
       document.addEventListener("keydown", function (e) {
-        controls[e.code] = e;
+        if (controls[e.code] === undefined) {
+          controls[e.code] = {};
+        }
+        controls[e.code].event = e;
+        controls[e.code].down = true;
+        controls[e.code].down_at = performance.now();
       });
 
       document.addEventListener("keyup", function (e) {
-        delete controls[e.code];
+        if (controls[e.code] !== undefined) {
+          delete controls[e.code].event;
+          controls[e.code].down = false;
+          controls[e.code].up_at = performance.now();
+        }
       });
 
-      document.addEventListener("mousedown", function (e) {
-        controls["mouse"] = e;
+      window.addEventListener("mousedown", function (e) {
+        controls.mouse.down_event = e;
+        controls.mouse.down = true;
+        controls.mouse.down_at = performance.now();
       });
 
-      document.addEventListener("mouseup", function (e) {
-        delete controls["mouse"];
+      window.addEventListener("mouseup", function (e) {
+        delete controls.mouse.down_event;
+        controls.mouse.down = false;
+        controls.mouse.up_at = performance.now();
+        // only set dragging to false if it was true
+        if (controls.mouse.dragging === true) {
+          controls.mouse.dragging = false;
+          controls.mouse.dragged_at = performance.now();
+        }
+      });
+
+      window.addEventListener("mousemove", function (e) {
+        controls.mouse.move_event = e;
+        if (controls.mouse.down === true && controls.mouse.dragging !== true) {
+          controls.mouse.dragging = true;
+          controls.mouse.dragging_at = performance.now();
+        }
       });
     };
 
@@ -337,7 +408,112 @@ let ControlManager = (function () {
     console.log("ControlManager init.");
 
     return {
-      get_controls: get_controls
+      get_controls: get_controls,
+      add_button: add_button,
+      remove_button: remove_button,
+      set_button: set_button,
+    };
+  };
+})();
+
+
+
+let UIManager = (function () {
+  let buttons = null,
+    control_manager = null,
+    add_button = function (button) {
+      /* button should be like: {
+       *   id: a unique id to refer to this button
+       *   x: x-coord from left
+       *   y: y-coord from top
+       *   width: button-width
+       *   height: button-height
+       *   text: text for the button to display
+       *
+       *   background: (optional) background for button
+       *   style: (optional) custom-style
+       *   update: (optional) update-function taking entity_manager
+       * }
+       */
+
+      let element = document.createElement("div");
+      let style_string = "position: absolute; display: inline-block; ";
+      style_string += "left: " + button.x + "px; ";
+      style_string += "top: " + button.y + "px; ";
+      style_string += "width: " + button.width + "px; ";
+      style_string += "height: " + button.height + "px; ";
+      style_string += "background: " + button.background + "; ";
+      if (button.style) {
+        style_string += button.style;
+      }
+      console.log(button.id + " style is: " + style_string);
+      element.style = style_string;
+      element.innerHTML = button.text;
+      element.id = button.id;
+      button.element = element;
+
+      button.hover = false;
+      button.down = false;
+      button.hover_at = 0;
+      button.down_at = 0;
+
+      button.on_enter = function () {
+        control_manager.set_button(button.id, 'hover', true);
+      };
+      button.on_out = function () {
+        control_manager.set_button(button.id, 'hover', false);
+      };
+      button.on_down = function () {
+        control_manager.set_button(button.id, 'down', true);
+      };
+      button.on_up = function () {
+        control_manager.set_button(button.id, 'down', false);
+      };
+
+      element.addEventListener('mouseenter', button.on_enter);
+      element.addEventListener('mouseout', button.on_out);
+      element.addEventListener('mousedown', button.on_down);
+      element.addEventListener('mouseup', button.on_up);
+
+      let stage = document.getElementById("stage");
+      stage.appendChild(element);
+
+      buttons[button.id] = button;
+      control_manager.add_button(button);
+    },
+    remove_button = function (id) {
+      let button = buttons[id];
+
+      control_manager.remove_button(id);
+
+      if (!button || !button.element) {
+        return null;
+      }
+
+      let element = button.element;
+      element.removeEventListener('mouseenter', button.on_enter);
+      element.removeEventListener('mouseout', button.on_out);
+      element.removeEventListener('mousedown', button.on_down);
+      element.removeEventListener('mouseup', button.on_up);
+
+      return button;
+    },
+    get_buttons = function () {
+      return buttons;
+    },
+    init = function (_config_manager, _control_manager) {
+      buttons = {};
+      control_manager = _control_manager;
+      config = _config_manager.get_config()
+    };
+
+  return function (config_manager, control_manager) {
+    init(config_manager, control_manager);
+
+    return {
+      get_buttons: get_buttons,
+      add_button: add_button,
+      remove_button: remove_button,
     };
   };
 })();
@@ -454,17 +630,21 @@ let PlayerManager = (function () {
     update = function (delta, entity_manager) {
       keys = controls.get_controls();
 
-      if (keys['KeyW'] || keys['ArrowUp']) {
+      if (keys['KeyW'] && keys['KeyW'].down ||
+        keys['ArrowUp'] && keys['ArrowUp'].down) {
         player.y_velocity -= player.y_acceleration;
-      } else if (keys['KeyS'] || keys['ArrowDown']) {
+      } else if (keys['KeyS'] && keys['KeyS'].down ||
+        keys['ArrowDown'] && keys['ArrowDown'].down) {
         player.y_velocity += player.y_acceleration;
       } else {
         player.y_velocity *= 0.8;
       }
 
-      if (keys['KeyA'] || keys['ArrowLeft']) {
+      if (keys['KeyA'] && keys['KeyA'].down ||
+        keys['ArrowLeft'] && keys['ArrowLeft'].down) {
         player.x_velocity -= player.x_acceleration;
-      } else if (keys['KeyD'] || keys['ArrowRight']) {
+      } else if (keys['KeyD'] && keys['KeyD'].down ||
+        keys['ArrowRight'] && keys['ArrowRight'].down) {
         player.x_velocity += player.x_acceleration;
       } else {
         player.x_velocity *= 0.8;
