@@ -4,11 +4,18 @@ let config_spec = {
       this.particle_count = 0;
       this.last_particle_added = performance.now();
       this.player = player_manager.get_player();
+
       ui_manager.add_button({
         id: "map_cycle",
-        x: 15, y: 50, width: 80, height: 30, text: "<p style='margin: 8px 0'>Next Map</p>",
-        background: "black", style: 'color: white; text-align: center'
+        x: 15,
+        y: 50,
+        width: 80,
+        height: 30,
+        text: "<p style='margin: 8px 0'>Next Map</p>",
+        background: "black",
+        style: 'color: white; text-align: center'
       });
+
       this.xy_text = {
         id: "xy",
         text: "x, y: " + this.player.x + ", " + this.player.y,
@@ -22,7 +29,8 @@ let config_spec = {
           this.text = "x, y: " + player.x.toFixed(3) + ", " + player.y.toFixed(3);
         },
       };
-      this.velo_text = {
+
+     this.velo_text = {
         id: "xy",
         text: "xv, yv: " + this.player.x_velocity + ", " + this.player.y_velocity,
         x: 10, //this.player.x.toFixed(3),
@@ -35,6 +43,7 @@ let config_spec = {
           this.text = "xv, yv: " + player.x_velocity.toFixed(3) + ", " + player.y_velocity.toFixed(3);
         },
       };
+
       this.map_text = {
         id: "map",
         text: "map: " + map_manager.get_current_map_id,
