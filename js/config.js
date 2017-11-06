@@ -59,7 +59,7 @@ let config_spec = {
         keys = control_manager.get_controls(),
         lol_text = null;
 
-      if (keys.buttons.map_cycle.down) {
+      if (keys.buttons.map_cycle.down || (keys['KeyM'] && keys['KeyM'].down)) {
         // should build a means to cycle that doesn't rely on hardcoding an if-ladder
         if (map_manager.get_current_map_id() === "map1") {
           map_manager.change_maps("map2", entity_manager);
@@ -140,8 +140,8 @@ let config_spec = {
   "player": {
     "id": "player1",
     "img": "player",
-    "x": 10,
-    "y": 10,
+    "x": 256,
+    "y": 384,
     "layer": 2,
     "x_scale": 1,
     "y_scale": 1,
