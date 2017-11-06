@@ -56,19 +56,19 @@ let config_spec = {
           this.text = "map: " + entity_manager.get_map_manager().get_current_map_id();
         },
       }
+
       entity_manager.add_text(this.xy_text);
       entity_manager.add_text(this.velo_text);
       entity_manager.add_text(this.map_text);
     },
     "update": function (delta, entity_manager) {
-      let control_manager = entity_manager.get_control_manager(),
+      let controls = entity_manager.get_control_manager(),
         map_manager = entity_manager.get_map_manager(),
         player_manager = entity_manager.get_player_manager(),
         player = player_manager.get_player(),
-        keys = control_manager.get_controls(),
         lol_text = null;
 
-      if (keys.buttons.map_cycle.down || (keys['KeyM'] && keys['KeyM'].down)) {
+      if (controls.buttons('map_cycle') || controls.keys('KeyM')) {
         // should build a means to cycle that doesn't rely on hardcoding an if-ladder
         if (map_manager.get_current_map_id() === "map1") {
           map_manager.change_maps("map2", entity_manager);
@@ -80,7 +80,7 @@ let config_spec = {
           map_manager.change_maps("map1", entity_manager);
         }
         player_manager.modify_player('layer', map_manager.get_map().player_layer);
-      } else if (keys['KeyL'] && keys['KeyL'].down) {
+      } else if (controls.keys('KeyL')) {
         if (this.loling) {
           entity_manager.remove_text("lol");
           this.loling = false;
@@ -104,7 +104,7 @@ let config_spec = {
           entity_manager.add_text(lol_text);
           this.loling = true;
         }
-      } else if (keys['KeyZ'] && keys['KeyZ'].down) {
+      } else if (controls.keys('KeyZ')) {
         if (performance.now() - this.last_particle_added > 200) {
           this.particle_count += 1;
           this.last_particle_added = performance.now();

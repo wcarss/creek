@@ -408,6 +408,15 @@ let ControlManager = (function () {
         down_at: 0,
       },
     },
+    keys = function (id) {
+      return controls[id] && controls[id].down;
+    },
+    buttons = function (id) {
+      return controls.buttons[id] && controls.buttons[id].down;
+    },
+    mouse = function () {
+      return contols.mouse.down;
+    },
     get_controls = function () {
       return controls;
     },
@@ -497,6 +506,9 @@ let ControlManager = (function () {
       add_button: add_button,
       remove_button: remove_button,
       set_button: set_button,
+      keys: keys,
+      buttons: buttons,
+      mouse: mouse,
     };
   };
 })();
@@ -724,23 +736,18 @@ let PlayerManager = (function () {
       player[key] = value;
     },
     update = function (delta, entity_manager) {
-      keys = controls.get_controls();
 
-      if (keys['KeyW'] && keys['KeyW'].down ||
-        keys['ArrowUp'] && keys['ArrowUp'].down) {
+      if (controls.keys('KeyW') || controls.keys('ArrowUp')) {
         player.y_velocity -= player.y_acceleration;
-      } else if (keys['KeyS'] && keys['KeyS'].down ||
-        keys['ArrowDown'] && keys['ArrowDown'].down) {
+      } else if (controls.keys('KeyS') || controls.keys('ArrowDown')) {
         player.y_velocity += player.y_acceleration;
       } else {
         player.y_velocity *= 0.8;
       }
 
-      if (keys['KeyA'] && keys['KeyA'].down ||
-        keys['ArrowLeft'] && keys['ArrowLeft'].down) {
+      if (controls.keys('KeyA') || controls.keys('ArrowLeft')) {
         player.x_velocity -= player.x_acceleration;
-      } else if (keys['KeyD'] && keys['KeyD'].down ||
-        keys['ArrowRight'] && keys['ArrowRight'].down) {
+      } else if (controls.keys('KeyD') || controls.keys('ArrowRight')) {
         player.x_velocity += player.x_acceleration;
       } else {
         player.x_velocity *= 0.8;
