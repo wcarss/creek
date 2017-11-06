@@ -236,27 +236,37 @@ let CameraManager = (function () {
       let offset_x = x - camera.raw_width / 2,
         offset_y = y - camera.raw_height / 2;
 
-      move(offset_x, offset_y);
+      bounded_move(offset_x, offset_y);
+    },
+    bounded_move = function (x, y) {
+      let new_x = clamp(x, camera.inner_x, camera.inner_x+camera.inner_width, 0.001, false),
+        new_y = clamp(y, camera.inner_y, camera.inner_y+camera.inner_height, 0.001, false);
+
+      move(x+(x-new_x), y+(y-new_y));
     },
     move = function (x, y) {
-      if (fullscreen) {
+      if (fullscreen && camera.width !== context_manager.get_width()) {
         resize(context_manager.get_width(), context_manager.get_height());
       }
 
       let bounds = map_manager.get_bounds();
       x = clamp(x, bounds.x, bounds.width);
-      y = clamp(y, bounds.y, bounds.width);
+      y = clamp(y, bounds.y, bounds.height);
 
       camera.raw_x = x;
       camera.raw_y = y;
       camera.x = camera.raw_x;
       camera.y = camera.raw_y;
+      camera.inner_x = camera.x-camera.inner_width/2;
+      camera.inner_y = camera.y-camera.inner_height/2;
     },
     resize = function (width, height) {
       camera.raw_width = width;
       camera.raw_height = height;
       camera.width = camera.raw_width;
       camera.height = camera.raw_height;
+      camera.inner_width = width / 4;
+      camera.inner_height = height / 4;
     },
     init = function (config_manager, _context_manager, _map_manager) {
       console.log("CameraManager init.");
@@ -281,6 +291,10 @@ let CameraManager = (function () {
         raw_y: camera_config.y,
         raw_width: width,
         raw_height: height,
+        inner_x: camera_config.x-width/8,
+        inner_y: camera_config.y-height/8,
+        inner_width: width / 4,
+        inner_height: height / 4,
         x: camera_config.x,
         y: camera_config.y,
         width: width,
@@ -734,7 +748,6 @@ let PlayerManager = (function () {
         player.x_velocity *= 0.8;
       }
 
-      // todo: write generic clamp
       player.x_velocity = clamp(
         player.x_velocity, -player.max_x_velocity, player.max_x_velocity
       );
@@ -745,7 +758,6 @@ let PlayerManager = (function () {
       player.x += delta * player.x_velocity;
       player.y += delta * player.y_velocity;
 
-      // todo: the map should probably clamp max/min positions
       let bounds = map_manager.get_bounds();
       player.x = clamp(player.x, bounds.x, bounds.width - player.x_size);
       player.y = clamp(player.y, bounds.y, bounds.height - player.y_size);

@@ -22,6 +22,19 @@ let config_spec = {
           this.text = "x, y: " + player.x.toFixed(3) + ", " + player.y.toFixed(3);
         },
       };
+      this.velo_text = {
+        id: "xy",
+        text: "xv, yv: " + this.player.x_velocity + ", " + this.player.y_velocity,
+        x: 10, //this.player.x.toFixed(3),
+        y: 95, //this.player.y.toFixed(3),
+        offset_type: "camera",
+        font: "14px sans",
+        color: "white",
+        update: function (delta, entity_manager) {
+          let player = entity_manager.get_player_manager().get_player();
+          this.text = "xv, yv: " + player.x_velocity.toFixed(3) + ", " + player.y_velocity.toFixed(3);
+        },
+      };
       this.map_text = {
         id: "map",
         text: "map: " + map_manager.get_current_map_id,
@@ -35,6 +48,7 @@ let config_spec = {
         },
       }
       entity_manager.add_text(this.xy_text);
+      entity_manager.add_text(this.velo_text);
       entity_manager.add_text(this.map_text);
     },
     "update": function (delta, entity_manager) {
