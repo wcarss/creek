@@ -232,17 +232,23 @@ let CameraManager = (function () {
         y: camera.y,
       };
     },
-    center = function (x, y) {
-      let offset_x = x - camera.raw_width / 2,
-        offset_y = y - camera.raw_height / 2;
+    center = function (center_x, center_y) {
+      let new_camera_x = camera.x,
+        new_camera_y = camera.y;
 
-      bounded_move(offset_x, offset_y);
-    },
-    bounded_move = function (x, y) {
-      let new_x = clamp(x, camera.inner_x, camera.inner_x+camera.inner_width, 0.001, false),
-        new_y = clamp(y, camera.inner_y, camera.inner_y+camera.inner_height, 0.001, false);
+      if (center_x > camera.inner_x + camera.inner_width) {
+        new_camera_x += (center_x - (camera.inner_x + camera.inner_width));
+      } else if (center_x < camera.inner_x) {
+        new_camera_x += (center_x - camera.inner_x);
+      }
 
-      move(x+(x-new_x), y+(y-new_y));
+      if (center_y > camera.inner_y + camera.inner_height) {
+        new_camera_y += (center_y - (camera.inner_y + camera.inner_height));
+      } else if (center_y < camera.inner_y) {
+        new_camera_y += (center_y - camera.inner_y);
+      }
+
+      move(new_camera_x, new_camera_y);
     },
     move = function (x, y) {
       if (fullscreen && camera.width !== context_manager.get_width()) {
@@ -253,20 +259,16 @@ let CameraManager = (function () {
       x = clamp(x, bounds.x, bounds.width);
       y = clamp(y, bounds.y, bounds.height);
 
-      camera.raw_x = x;
-      camera.raw_y = y;
-      camera.x = camera.raw_x;
-      camera.y = camera.raw_y;
-      camera.inner_x = camera.x-camera.inner_width/2;
-      camera.inner_y = camera.y-camera.inner_height/2;
+      camera.x = x;
+      camera.y = y;
+      camera.inner_x = camera.x + camera.width / 4;
+      camera.inner_y = camera.y + camera.height / 4;
     },
     resize = function (width, height) {
-      camera.raw_width = width;
-      camera.raw_height = height;
-      camera.width = camera.raw_width;
-      camera.height = camera.raw_height;
-      camera.inner_width = width / 4;
-      camera.inner_height = height / 4;
+      camera.width = width;
+      camera.height = height;
+      camera.inner_width = width / 2;
+      camera.inner_height = height / 2;
     },
     init = function (config_manager, _context_manager, _map_manager) {
       console.log("CameraManager init.");
@@ -287,14 +289,10 @@ let CameraManager = (function () {
       }
 
       camera = {
-        raw_x: camera_config.x,
-        raw_y: camera_config.y,
-        raw_width: width,
-        raw_height: height,
-        inner_x: camera_config.x-width/8,
-        inner_y: camera_config.y-height/8,
-        inner_width: width / 4,
-        inner_height: height / 4,
+        inner_x: camera_config.x-width/4,
+        inner_y: camera_config.y-height/4,
+        inner_width: width / 2,
+        inner_height: height / 2,
         x: camera_config.x,
         y: camera_config.y,
         width: width,
