@@ -189,12 +189,54 @@ let config_spec = {
     "y_size": 32,
     "x_velocity": 0,
     "y_velocity": 0,
-    "max_x_velocity": 12,
-    "max_y_velocity": 12,
-    "x_acceleration": 1.8,
-    "y_acceleration": 1.8,
+    "max_x_velocity": 8,
+    "max_y_velocity": 8,
+    "x_acceleration": 0.8,
+    "y_acceleration": 0.8,
     "health": 10,
     "score": 0,
+    "update": function (delta, entity_manager) {
+      let map_manager = entity_manager.get_map_manager(),
+        controls = entity_manager.get_control_manager();
+
+      if (controls.keys('KeyW') || controls.keys('ArrowUp')) {
+        this.y_velocity -= this.y_acceleration * delta;
+      } else if (controls.keys('KeyS') || controls.keys('ArrowDown')) {
+        this.y_velocity += this.y_acceleration * delta;
+      } else {
+        this.y_velocity *= 0.8;
+      }
+
+      if (controls.keys('KeyA') || controls.keys('ArrowLeft')) {
+        this.x_velocity -= this.x_acceleration * delta;
+      } else if (controls.keys('KeyD') || controls.keys('ArrowRight')) {
+        this.x_velocity += this.x_acceleration * delta;
+      } else {
+        this.x_velocity *= 0.8;
+      }
+
+      this.x_velocity = clamp(
+        this.x_velocity, -this.max_x_velocity, this.max_x_velocity
+      );
+      this.y_velocity = clamp(
+        this.y_velocity, -this.max_y_velocity, this.max_y_velocity
+      );
+
+      this.x += delta * this.x_velocity;
+      this.y += delta * this.y_velocity;
+
+      let bounds = map_manager.get_bounds();
+      this.x = clamp(this.x, bounds.x, bounds.width - this.x_size);
+      this.y = clamp(this.y, bounds.y, bounds.height - this.y_size);
+
+      entity_manager.move_entity(this, this.x, this.y);
+      entity_manager.get_camera_manager().center(this.x, this.y);
+
+      if (this.score >= 1) {
+        console.log("this wins.");
+        this.score = 0;
+      }
+    }
   },
   "camera": {
     "x": 0,

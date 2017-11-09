@@ -855,69 +855,16 @@ let MapManager = (function () {
 
 let PlayerManager = (function () {
   let player = null,
-    controls = null,
-    map_manager = null,
     get_player = function () {
       return player;
-    },
-    get_tile = function () {
-      return {
-        "id": player.id,
-        "img": player.img,
-        "x": player.x,
-        "y": player.y,
-        "x_scale": player.x_scale,
-        "y_scale": player.y_scale,
-        "x_size": player.x_size,
-        "y_size": player.y_size,
-      };
     },
     modify_player = function (key, value) {
       player[key] = value;
     },
     update = function (delta, entity_manager) {
-
-      if (controls.keys('KeyW') || controls.keys('ArrowUp')) {
-        player.y_velocity -= player.y_acceleration;
-      } else if (controls.keys('KeyS') || controls.keys('ArrowDown')) {
-        player.y_velocity += player.y_acceleration;
-      } else {
-        player.y_velocity *= 0.8;
-      }
-
-      if (controls.keys('KeyA') || controls.keys('ArrowLeft')) {
-        player.x_velocity -= player.x_acceleration;
-      } else if (controls.keys('KeyD') || controls.keys('ArrowRight')) {
-        player.x_velocity += player.x_acceleration;
-      } else {
-        player.x_velocity *= 0.8;
-      }
-
-      player.x_velocity = clamp(
-        player.x_velocity, -player.max_x_velocity, player.max_x_velocity
-      );
-      player.y_velocity = clamp(
-        player.y_velocity, -player.max_y_velocity, player.max_y_velocity
-      );
-
-      player.x += delta * player.x_velocity;
-      player.y += delta * player.y_velocity;
-
-      let bounds = map_manager.get_bounds();
-      player.x = clamp(player.x, bounds.x, bounds.width - player.x_size);
-      player.y = clamp(player.y, bounds.y, bounds.height - player.y_size);
-
-      entity_manager.move_entity(player, player.x, player.y);
-      entity_manager.get_camera_manager().center(player.x, player.y);
-
-      if (player.score >= 1) {
-        console.log("player wins.");
-        player.score = 0;
-      }
+      player.update(delta, entity_manager);
     },
-    init = function (config, _controls, _map_manager) {
-      controls = _controls;
-      map_manager = _map_manager;
+    init = function (config) {
       player = config.get_player();
     };
 
@@ -927,7 +874,6 @@ let PlayerManager = (function () {
 
     return {
       get_player: get_player,
-      get_tile: get_tile,
       update: update,
       modify_player: modify_player,
     };
