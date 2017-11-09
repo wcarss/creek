@@ -104,9 +104,9 @@ let config_spec = {
         if (map_manager.get_current_map_id() === "map1") {
           map_manager.change_maps("map2", entity_manager);
         } else if (map_manager.get_current_map_id() === "map2") {
-          map_manager.change_maps("map_field", entity_manager);
-        } else if (map_manager.get_current_map_id() === 'map_field'){
-          map_manager.change_maps('map_test', entity_manager);
+          map_manager.change_maps("field", entity_manager);
+        } else if (map_manager.get_current_map_id() === 'field'){
+          map_manager.change_maps('test', entity_manager);
         } else {
           map_manager.change_maps("map1", entity_manager);
         }
@@ -206,8 +206,12 @@ let config_spec = {
     "top_margin": 100,
     "bottom_margin": 100,
   },
-  "initial_map_id": "map_field",
+  "initial_map_id": "field",
   "maps": {
+    "to_load": [
+      "field",
+      "test"
+    ],
     "map1": {
       "height": 2000,
       "width": 600,

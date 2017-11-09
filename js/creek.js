@@ -83,7 +83,21 @@ let ConfigManager = (function () {
       return config.player;
     },
     get_maps = function () {
-      return config.maps;
+      let map = null,
+        id = null,
+        loading = [];
+        defined = { ... config.maps };
+
+      if (defined.to_load) {
+        for (i in defined.to_load) {
+          map = defined.to_load[i];
+          id = request_manager.get("/resources/maps/" + map + ".json", map);
+          loading.push(id);
+        }
+        delete defined.to_load;
+      }
+
+      return {defined: defined, loading: loading};
     },
     get_resources = function () {
       return config.resources;
@@ -100,25 +114,8 @@ let ConfigManager = (function () {
       }
 
       return state;
-    },
-    map_bg = {
-      "id": "bg1",
-      "img": "bg",
-      "x": -3000,
-      "y": -3000,
-      "x_scale": 12,
-      "y_scale": 12,
-      "x_size": 6000,
-      "y_size": 6000,
-      "layer": -1,
     };
 
-  // forcing a background into these maps
-  // TODO: I'm going to have to find some way to add maps dynamically
-  map_test.layers.unshift([map_bg]);
-  map_field.layers.unshift([map_bg]);
-  config_spec.maps.map_test = map_test;
-  config_spec.maps.map_field = map_field;
   config = config_spec;
 
   return function () {
@@ -723,6 +720,7 @@ let UIManager = (function () {
 
 let MapManager = (function () {
   let maps = null,
+    loading = null,
     current_map_id = null,
     last_change_time = null,
     min_change_time = null,
@@ -790,9 +788,36 @@ let MapManager = (function () {
         maps[current_map_id].update(delta, entity_manager);
       }
     },
+    load_if_needed = function () {
+      let to_remove = [];
+
+      for (i in loading) {
+        data = request_manager.get_data(loading[i]);
+        if (data && data.map) {
+          maps[data.map.id] = data.map;
+          to_remove.push(i);
+        }
+      }
+
+      for (i in to_remove) {
+        loading.splice(to_remove[i], 1);
+      }
+    },
+    is_loading = function () {
+      return maps[current_map_id].loading;
+    },
     init = function (config_manager) {
       config = config_manager.get_config();
-      maps = config_manager.get_maps();
+      map_sets = config_manager.get_maps();
+      maps = map_sets.defined;
+      loading = map_sets.loading;
+      for (i in loading) {
+        maps[loading[i]] = {
+          id: loading[i],
+          loading: true,
+          layers: [],
+        };
+      }
       min_change_time = config['min_map_change_time'] || 150;
       current_map_id = config['initial_map_id'];
       last_change_time = performance.now();
@@ -809,6 +834,8 @@ let MapManager = (function () {
       get_bounds: get_bounds,
       get_quadtree: get_quadtree,
       get_maps: get_maps,
+      load_if_needed: load_if_needed,
+      is_loading: is_loading,
       get_current_map_id: get_current_map_id,
       update: update,
     };
@@ -961,13 +988,29 @@ let EntityManager = (function () {
     particle_count = 0,
     last_particle_added = null,
     game_state = null,
+    last_loading = null,
+    just_loaded = null,
     stale_entities = function () {
       let debug = true;
+      let loading = maps.is_loading();
       let stale = current_map_id !== maps.get_current_map_id();
+      if (debug && loading && (!last_loading || performance.now() - last_loading > 300)) {
+        last_loading = performance.now();
+        console.log("loading...");
+      }
+
+      if (!loading && last_loading !== null) {
+        last_loading = null;
+        stale = true;
+        just_loaded = true;
+        console.log("forced staleness to help load.");
+      }
+
       if (debug && stale) {
         console.log("found stale entities.");
       }
-      return stale;
+
+      return loading || stale;
     },
     get_entity = function (id) {
       for (i in entities) {
@@ -991,7 +1034,17 @@ let EntityManager = (function () {
     get_request_manager = function () {
       return request_manager;
     },
+    load_if_needed = function () {
+      maps.load_if_needed();
+    },
     get_entities = function () {
+      if (maps.is_loading()) {
+        return entities;
+      }
+      if (stale_entities()) {
+        setup_entities();
+      }
+
       let camera = camera_manager.get_camera(),
         x = camera.x-camera.left_margin,
         y = camera.y-camera.top_margin,
@@ -1016,9 +1069,42 @@ let EntityManager = (function () {
     },
     setup_entities = function () {
       let current_map = maps.get_map(),
-        layers = current_map.layers;
+        layers = current_map.layers,
+        map_bg = {
+          "id": "bg1",
+          "img": "bg",
+          "x": 0,
+          "y": 0,
+          "x_scale": 12,
+          "y_scale": 12,
+          "x_size": current_map.width,
+          "y_size": current_map.height,
+          "layer": -999999,
+        };
 
       current_map_id = current_map.id;
+
+      if (current_map.loading && !entities) {
+        entities = [map_bg];
+        tree = null;
+        add_text({
+          id: "loading",
+          text: "loading",
+          x: 10,
+          y: 10,
+          color: "black"
+        });
+        return;
+      }
+
+      if (just_loaded) {
+        remove_text("loading");
+        just_loaded = false;
+      }
+
+      if (current_map.needs_bg) {
+        layers.unshift([map_bg]);
+      }
 
       // paste the player layer into the correct spot and update player
       layers.splice(current_map.player_layer, 0, [player.get_player()]);
@@ -1028,6 +1114,9 @@ let EntityManager = (function () {
       entities = get_entities();
     },
     move_entity = function (entity, x, y) {
+      if (maps.is_loading()) {
+        return;
+      }
       quadtree_remove_by_id(tree, entity.id);
       entity.x = x;
       entity.y = y;
@@ -1129,6 +1218,7 @@ let EntityManager = (function () {
       add_text: add_text,
       get_texts: get_texts,
       remove_text: remove_text,
+      load_if_needed: load_if_needed,
     };
   };
 })();
@@ -1194,6 +1284,7 @@ let RenderManager = (function () {
         text_draw(text_list[i], context, delta, world_offset);
       }
       entities.update(delta);
+      entities.load_if_needed();
 
       requestAnimationFrame(next_frame);
     },

@@ -1,8 +1,10 @@
-let map_field = {
+{
+  "map": {
     "width": 2048,
     "height": 1536,
     "player_layer": 2.1,
-    "id": "map_field",
+    "id": "field",
+    "needs_bg": true,
     "layers": [
         [
             {
@@ -9701,4 +9703,5 @@ let map_field = {
             }
         ]
     ]
-};
+  }
+}
