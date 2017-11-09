@@ -1,9 +1,39 @@
 let config_spec = {
   "game": {
-    "init": function (entity_manager, control_manager, ui_manager, map_manager, player_manager) {
+    "init": function (entity_manager, control_manager, ui_manager, map_manager, player_manager, request_manager) {
       this.particle_count = 0;
       this.last_particle_added = performance.now();
       this.player = player_manager.get_player();
+
+      let data_load_request = request_manager.get("/test.json");
+      let data_load_request2 = request_manager.get("/test.json");
+
+      this.data_load = {
+        id: "data_load",
+        text: "null",
+        x: 10,
+        y: 110,
+        offset_type: "camera",
+        font: "14px sans",
+        color: "white",
+        update: function (delta, entity_manager) {
+          let requests = entity_manager.get_request_manager(),
+            request = requests.get_request(data_load_request);
+            data = request.data,
+            init_at = request.initialized_at,
+            resolved_at = request.resolved_at;
+
+          if (data) {
+            if (data.example) {
+              this.text = "request " + request.id + ": " + data.example + ", in " + ((resolved_at-init_at)/1000).toFixed(3) + " seconds";
+            } else {
+              this.text = "request " + request.id + ": failed in " + ((resolved_at-init_at)/1000).toFixed(3) + " seconds";
+              console.log("data_load request failed!");
+              console.log(data);
+            }
+          }
+        }
+      }
 
       ui_manager.add_button({
         id: "map_cycle",
@@ -60,6 +90,7 @@ let config_spec = {
       entity_manager.add_text(this.xy_text);
       entity_manager.add_text(this.velo_text);
       entity_manager.add_text(this.map_text);
+      entity_manager.add_text(this.data_load);
     },
     "update": function (delta, entity_manager) {
       let controls = entity_manager.get_control_manager(),

@@ -8,7 +8,8 @@ let GameManager = (function () {
     context_manager = null,
     resource_manager = null,
     render_manager = null,
-    physics_manager= null,
+    physics_manager = null,
+    request_maanger = null,
 
     start_game = function () {
       game_state.init(
@@ -16,7 +17,8 @@ let GameManager = (function () {
         control_manager,
         ui_manager,
         map_manager,
-        player_manager
+        player_manager,
+        request_manager
       );
       render_manager.next_frame();
     },
@@ -26,6 +28,7 @@ let GameManager = (function () {
 
       physics_manager = PhysicsManager();
       control_manager = ControlManager();
+      request_manager = RequestManager();
       ui_manager = UIManager(config_manager, control_manager);
       context_manager = ContextManager(config_manager);
 
@@ -39,6 +42,7 @@ let GameManager = (function () {
         map_manager,
         physics_manager,
         game_state,
+        request_manager
       );
 
       resource_manager = ResourceManager(config_manager);
@@ -127,6 +131,106 @@ let ConfigManager = (function () {
       get_resources: get_resources,
     };
   };
+})();
+
+
+
+let RequestManager = (function () {
+  let data = null,
+    _method = null,
+    state = null,
+    url = null,
+    requests = null,
+    get_data = function (id) {
+      if (requests[id]) {
+        return requests[id].data;
+      }
+    },
+    get_request = function (id) {
+      return requests[id];
+    },
+    remove = function (id) {
+      if (requests[id]) {
+        delete requests[id];
+      }
+    },
+    get = function (url, id, options) {
+      let body = null;
+      if (options && options.body) {
+        body = options.body;
+      }
+      return send('get', url, body, id, options);
+    },
+    post = function (url, body, id, options) {
+      return send('post', url, body, id, options);
+    },
+    put = function (url, body, id, options) {
+      return send('put', url, body, id, options);
+    },
+    _delete = function (url, id, options) {
+      return send('delete', url, null, id, options);
+    },
+    options = function (url, id, options) {
+      return send('options', url, null, id, options);
+    },
+    head = function (url, id, options) {
+      return send('head', url, null, id, options);
+    },
+    send = function (method, url, body, id, options) {
+      if (!id) {
+        id = timestamp_id();
+        console.log("creating an id in " + method + " request for " + url);
+      }
+
+      if (requests[id]) {
+        delete requests[id];
+        console.log("overwriting id " + id + " in " + method + " request for " + url);
+      }
+
+      let new_request = {
+        xhr: new XMLHttpRequest(),
+        id: id,
+        method: method,
+        url: url,
+        body: body,
+        options: options,
+        data: null,
+        state: "initialized",
+        initialized_at: performance.now(),
+        resolved_at: null,
+      };
+
+      requests[id] = new_request;
+      new_request.xhr.onload = function (e) {
+        console.log("request " + id + " text: " + this.responseText);
+        new_request.data = JSON.parse(this.responseText);
+        new_request.state = "complete";
+        new_request.resolved_at = performance.now();
+      };
+      new_request.xhr.open(method, url);
+      new_request.xhr.send();
+
+      return id;
+    },
+    init = function () {
+      requests = {};
+    };
+
+  return function () {
+    init();
+
+    return {
+      get_data: get_data,
+      get_request: get_request,
+      get: get,
+      post: post,
+      put: put,
+      'delete': _delete,
+      send: send,
+      options: options,
+      head: head,
+    };
+  }
 })();
 
 
@@ -848,6 +952,7 @@ let EntityManager = (function () {
     texts = null,
     player = null,
     camera_manager = null,
+    request_manager = null,
     controls = null,
     maps = null,
     current_map_id = null,
@@ -882,6 +987,9 @@ let EntityManager = (function () {
     },
     get_camera_manager = function () {
       return camera_manager;
+    },
+    get_request_manager = function () {
+      return request_manager;
     },
     get_entities = function () {
       let camera = camera_manager.get_camera(),
@@ -987,20 +1095,21 @@ let EntityManager = (function () {
         }
       }
     },
-    init = function (_controls, _player, _camera, _maps, _physics, _game) {
+    init = function (_controls, _player, _camera, _maps, _physics, _game, _request) {
       controls = _controls;
       let tp = player = _player;
       camera_manager = _camera;
       maps = _maps;
       physics = _physics;
       game_state = _game;
+      request_manager = _request;
       last_particle_added = performance.now();
       texts = [];
       setup_entities();
     };
 
-  return function (_controls, _player, _camera, _maps, _physics, _game) {
-    init(_controls, _player, _camera, _maps, _physics, _game);
+  return function (_controls, _player, _camera, _maps, _physics, _game, _request) {
+    init(_controls, _player, _camera, _maps, _physics, _game, _request);
     console.log("EntityManager init.");
 
     return {
@@ -1010,6 +1119,7 @@ let EntityManager = (function () {
       get_map_manager: get_map_manager,
       get_control_manager: get_control_manager,
       get_camera_manager: get_camera_manager,
+      get_request_manager: get_request_manager,
       stale_entities: stale_entities,
       setup_entities: setup_entities,
       update: update,
