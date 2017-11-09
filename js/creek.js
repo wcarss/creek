@@ -1153,7 +1153,7 @@ let EntityManager = (function () {
       }
 
       if (to_remove !== -1) {
-        texts.splice(i, 1);
+        texts.splice(to_remove, 1);
       }
     }
     collide = function (entity) {
