@@ -138,6 +138,7 @@ let RequestManager = (function () {
     state = null,
     url = null,
     requests = null,
+    debug = null,
     get_data = function (id) {
       if (requests[id]) {
         return requests[id].data;
@@ -174,6 +175,11 @@ let RequestManager = (function () {
       return send('head', url, null, id, options);
     },
     send = function (method, url, body, id, options) {
+      let _debug = debug;
+      if (options && (options.debug === false || options.debug)) {
+        _debug = options.debug;
+      }
+
       if (!id) {
         id = timestamp_id();
         console.log("creating an id in " + method + " request for " + url);
@@ -199,7 +205,9 @@ let RequestManager = (function () {
 
       requests[id] = new_request;
       new_request.xhr.onload = function (e) {
-        console.log("request " + id + " text: " + this.responseText);
+        if (_debug) {
+          console.log("request " + id + " text: " + this.responseText);
+        }
         new_request.data = JSON.parse(this.responseText);
         new_request.state = "complete";
         new_request.resolved_at = performance.now();
@@ -209,12 +217,13 @@ let RequestManager = (function () {
 
       return id;
     },
-    init = function () {
+    init = function (_debug) {
+      debug = _debug;
       requests = {};
     };
 
-  return function () {
-    init();
+  return function (_debug) {
+    init(_debug);
 
     return {
       get_data: get_data,
