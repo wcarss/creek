@@ -5,8 +5,8 @@ let config_spec = {
       this.last_particle_added = performance.now();
       this.player = player_manager.get_player();
 
-      let data_load_request = request_manager.get("/test.json");
-      let data_load_request2 = request_manager.get("/test.json");
+      let data_load_request = request_manager.get("test.json");
+      let data_load_request2 = request_manager.get("test.json");
 
       this.data_load = {
         id: "data_load",

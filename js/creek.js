@@ -91,7 +91,7 @@ let ConfigManager = (function () {
       if (defined.to_load) {
         for (i in defined.to_load) {
           map = defined.to_load[i];
-          id = request_manager.get("/resources/maps/" + map + ".json", map);
+          id = request_manager.get("resources/maps/" + map + ".json", map);
           loading.push(id);
         }
         delete defined.to_load;
