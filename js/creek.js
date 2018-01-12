@@ -42,7 +42,8 @@ let GameManager = (function () {
         map_manager,
         physics_manager,
         game_state,
-        request_manager
+        request_manager,
+        ui_manager
       );
 
       resource_manager = ResourceManager(config_manager);
@@ -703,6 +704,9 @@ let UIManager = (function () {
       element.removeEventListener('mousedown', button.on_down);
       element.removeEventListener('mouseup', button.on_up);
 
+      let stage = document.getElementById("stage");
+      stage.removeChild(element);
+
       return button;
     },
     get_buttons = function () {
@@ -945,6 +949,7 @@ let EntityManager = (function () {
     game_state = null,
     last_loading = null,
     just_loaded = null,
+    ui_manager = null,
     stale_entities = function () {
       let debug = true;
       let loading = maps.is_loading();
@@ -988,6 +993,9 @@ let EntityManager = (function () {
     },
     get_request_manager = function () {
       return request_manager;
+    },
+    get_ui_manager = function () {
+      return ui_manager;
     },
     load_if_needed = function () {
       maps.load_if_needed();
@@ -1139,7 +1147,7 @@ let EntityManager = (function () {
         }
       }
     },
-    init = function (_controls, _player, _camera, _maps, _physics, _game, _request) {
+    init = function (_controls, _player, _camera, _maps, _physics, _game, _request, _ui_manager) {
       controls = _controls;
       let tp = player = _player;
       camera_manager = _camera;
@@ -1147,13 +1155,14 @@ let EntityManager = (function () {
       physics = _physics;
       game_state = _game;
       request_manager = _request;
+      ui_manager = _ui_manager;
       last_particle_added = performance.now();
       texts = [];
       setup_entities();
     };
 
-  return function (_controls, _player, _camera, _maps, _physics, _game, _request) {
-    init(_controls, _player, _camera, _maps, _physics, _game, _request);
+  return function (_controls, _player, _camera, _maps, _physics, _game, _request, _ui_manager) {
+    init(_controls, _player, _camera, _maps, _physics, _game, _request, _ui_manager);
     console.log("EntityManager init.");
 
     return {
@@ -1164,6 +1173,7 @@ let EntityManager = (function () {
       get_control_manager: get_control_manager,
       get_camera_manager: get_camera_manager,
       get_request_manager: get_request_manager,
+      get_ui_manager: get_ui_manager,
       stale_entities: stale_entities,
       setup_entities: setup_entities,
       update: update,
