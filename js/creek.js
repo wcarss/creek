@@ -833,7 +833,7 @@ let MapManager = (function () {
       }
       min_change_time = config['min_map_change_time'] || 150;
       current_map_id = config['initial_map_id'];
-      last_change_time = performance.now();
+      last_change_time = 0;
     };
 
   return function (_config) {
