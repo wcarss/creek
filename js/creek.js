@@ -975,7 +975,7 @@ let EntityManager = (function () {
     get_entity = function (id) {
       for (i in entities) {
         if (entities[i].id === id) {
-          return entities[i].id;
+          return entities[i];
         }
       }
     },
