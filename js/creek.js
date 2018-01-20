@@ -1000,6 +1000,9 @@ let EntityManager = (function () {
     load_if_needed = function () {
       maps.load_if_needed();
     },
+    clear_entities = function () {
+      console.log("clearing all entities yo");
+    },
     get_entities = function () {
       if (maps.is_loading()) {
         return entities;
@@ -1180,9 +1183,11 @@ let EntityManager = (function () {
       collide: collide,
       move_entity: move_entity,
       add_entity: add_entity,
+      clear_entities: clear_entities,
       add_text: add_text,
       get_texts: get_texts,
       remove_text: remove_text,
+      remove_entity: remove_entity,
       load_if_needed: load_if_needed,
     };
   };
