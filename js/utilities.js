@@ -33,6 +33,12 @@ function log_all(pre_message, hash) {
   console.log(str);
 }
 
+function console_log(msg) {
+  if (debug) {
+    console.log(msg);
+  }
+}
+
 function throttle(func, wait) {
   var last_time = null;
   return function() {
