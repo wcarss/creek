@@ -1,6 +1,15 @@
+"use strict";
+
 let config_spec = {
   "game": {
-    "init": function (entity_manager, control_manager, ui_manager, map_manager, player_manager, request_manager) {
+    "init": function (manager) {
+      let entity_manager = manager.get('entity'),
+        control_manager = manager.get('control'),
+        ui_manager = manager.get('ui'),
+        map_manager = manager.get('map'),
+        player_manager = manager.get('player'),
+        request_manager = manager.get('request');
+
       this.particle_count = 0;
       this.last_particle_added = performance.now();
       this.player = player_manager.get_player();
@@ -16,9 +25,9 @@ let config_spec = {
         offset_type: "camera",
         font: "14px sans",
         color: "white",
-        update: function (delta, entity_manager) {
-          let requests = entity_manager.get_request_manager(),
-            request = requests.get_request(data_load_request);
+        update: function (delta, manager) {
+          let requests = manager.get('request'),
+            request = requests.get_request(data_load_request),
             data = request.data,
             init_at = request.initialized_at,
             resolved_at = request.resolved_at;
@@ -54,10 +63,10 @@ let config_spec = {
         offset_type: "camera",
         font: "14px sans",
         color: "white",
-        update: function (delta, entity_manager) {
-          let player = entity_manager.get_player_manager().get_player();
+        update: function (delta, manager) {
+          let player = manager.get('player').get_player();
           this.text = "x, y: " + player.x.toFixed(3) + ", " + player.y.toFixed(3);
-        },
+        }
       };
 
      this.velo_text = {
@@ -68,10 +77,10 @@ let config_spec = {
         offset_type: "camera",
         font: "14px sans",
         color: "white",
-        update: function (delta, entity_manager) {
-          let player = entity_manager.get_player_manager().get_player();
+        update: function (delta, manager) {
+          let player = manager.get('player').get_player();
           this.text = "xv, yv: " + player.x_velocity.toFixed(3) + ", " + player.y_velocity.toFixed(3);
-        },
+        }
       };
 
       this.map_text = {
@@ -82,8 +91,8 @@ let config_spec = {
         offset_type: "camera",
         font: "14px sans",
         color: "white",
-        update: function (delta, entity_manager) {
-          this.text = "map: " + entity_manager.get_map_manager().get_current_map_id();
+        update: function (delta, manager) {
+          this.text = "map: " + manager.get('map').get_current_map_id();
         },
       }
 
@@ -92,23 +101,23 @@ let config_spec = {
       entity_manager.add_text(this.map_text);
       entity_manager.add_text(this.data_load);
     },
-    "update": function (delta, entity_manager) {
-      let controls = entity_manager.get_control_manager(),
-        map_manager = entity_manager.get_map_manager(),
-        player_manager = entity_manager.get_player_manager(),
+    "update": function (delta, manager) {
+      let controls = manager.get('control'),
+        map_manager = manager.get('map'),
+        player_manager = manager.get('player'),
         player = player_manager.get_player(),
         lol_text = null;
 
       if (controls.buttons('map_cycle') || controls.keys('KeyM')) {
         // should build a means to cycle that doesn't rely on hardcoding an if-ladder
         if (map_manager.get_current_map_id() === "map1") {
-          map_manager.change_maps("map2", entity_manager);
+          map_manager.change_maps("map2");
         } else if (map_manager.get_current_map_id() === "map2") {
-          map_manager.change_maps("field", entity_manager);
+          map_manager.change_maps("field");
         } else if (map_manager.get_current_map_id() === 'field'){
-          map_manager.change_maps('test', entity_manager);
+          map_manager.change_maps('test');
         } else {
-          map_manager.change_maps("map1", entity_manager);
+          map_manager.change_maps("map1");
         }
         player_manager.modify_player('layer', map_manager.get_map().player_layer);
       } else if (controls.keys('KeyL')) {
@@ -126,8 +135,8 @@ let config_spec = {
             offset_type: "world",
             font: "20px serif",
             color: "white",
-            update: function (delta, entity_manager) {
-              let player = entity_manager.get_player_manager().get_player();
+            update: function (delta, manager) {
+              let player = manager.get('player').get_player();
               this.x = player.x+this.rando_x;
               this.y = player.y+this.rando_y;
             },
@@ -154,7 +163,8 @@ let config_spec = {
             'img': "particle",
             'x_acceleration': 2,
             'x_acceleration': 2,
-            'update': function (delta, et) {
+            'update': function (delta, manager) {
+              let entity_manager = manager.get('entity');
               this.x += this.x_velocity * delta;
               this.y += this.y_velocity * delta;
               this.x_velocity *= 0.8;
@@ -163,7 +173,7 @@ let config_spec = {
                 this.x_velocity += Math.random() * 50 - 25;
                 this.y_velocity += Math.random() * 50 - 25;
               }
-              et.move_entity(this, this.x, this.y);
+              entity_manager.move_entity(this, this.x, this.y);
             }
           });
         }
@@ -195,9 +205,10 @@ let config_spec = {
     "y_acceleration": 0.8,
     "health": 10,
     "score": 0,
-    "update": function (delta, entity_manager) {
-      let map_manager = entity_manager.get_map_manager(),
-        controls = entity_manager.get_control_manager();
+    "update": function (delta, manager) {
+      let map_manager = manager.get('map'),
+        controls = manager.get('control'),
+        entity_manager = manager.get('entity');
 
       if (controls.keys('KeyW') || controls.keys('ArrowUp')) {
         this.y_velocity -= this.y_acceleration * delta;
@@ -230,7 +241,7 @@ let config_spec = {
       this.y = clamp(this.y, bounds.y, bounds.height - this.y_size);
 
       entity_manager.move_entity(this, this.x, this.y);
-      entity_manager.get_camera_manager().center(this.x, this.y);
+      manager.get('camera').center(this.x, this.y);
 
       if (this.score >= 1) {
         console.log("this wins.");
@@ -259,13 +270,11 @@ let config_spec = {
       "width": 600,
       "id": "map1",
       "player_layer": 2,
-      "init": function (entity_manager) {
+      "init": function (manager) {
         console.log("map " + this.id + ": initialized");
-        console.log(entity_manager);
       },
-      "deinit": function (entity_manager) {
+      "deinit": function (manager) {
         console.log("map " + this.id + ": de-initialized");
-        console.log(entity_manager);
       },
       "layers": [
         [
@@ -368,7 +377,7 @@ let config_spec = {
             "y_acceleration": 2,
             "value": 1,
             "flip": 1,
-            "update": function (delta, entity_manager) {
+            "update": function (delta, manager) {
               /* object only runs when active */
               if (this.active === false) {
                 return;
@@ -392,8 +401,8 @@ let config_spec = {
               }
 
               /* collision w/ player for scorekeeping/deactivation */
-              let collisions = entity_manager.collide(this);
-              let player_manager = entity_manager.get_player_manager();
+              let collisions = manager.get('entity').collide(this);
+              let player_manager = manager.get('player');
               let player = player_manager.get_player();
               for (i in collisions) {
                 if (collisions[i].id === player.id) {
@@ -401,7 +410,7 @@ let config_spec = {
                   this.active = false;
                 }
               }
-              entity_manager.move_entity(this, this.x, this.y);
+              manager.get('entity').move_entity(this, this.x, this.y);
             }
           }
         ]
@@ -513,7 +522,7 @@ let config_spec = {
             "y_acceleration": 2,
             "value": 1,
             "flip": 1,
-            "update": function (delta, entity_manager) {
+            "update": function (delta, manager) {
               /* object only runs when active */
               if (this.active === false) {
                 return;
@@ -537,8 +546,8 @@ let config_spec = {
               }
 
               /* collision w/ player for scorekeeping/deactivation */
-              let collisions = entity_manager.collide(this);
-              let player_manager = entity_manager.get_player_manager();
+              let collisions = manager.get('entity').collide(this);
+              let player_manager = manager.get('player');
               let player = player_manager.get_player();
               for (i in collisions) {
                 if (collisions[i].id === player.id) {
@@ -546,7 +555,7 @@ let config_spec = {
                   this.active = false;
                 }
               }
-              entity_manager.move_entity(this, this.x, this.y);
+              manager.get('entity').move_entity(this, this.x, this.y);
             } // update method
           }   // coin entity
         ]     // layer

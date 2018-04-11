@@ -1536,13 +1536,13 @@ let EntityManager = (function () {
       console.log("EntityManager init.");
       manager = _manager;
       let tp = player = manager.get('player');
+      texts = [];
       camera_manager = manager.get('camera');
       maps = manager.get('map');
       physics = manager.get('physics');
       console.log("setting up the ui manager");
       game_state = manager.get('game_state');
       last_particle_added = performance.now();
-      texts = [];
       setup_entities();
     };
 
