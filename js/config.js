@@ -103,6 +103,7 @@ let config_spec = {
     },
     "update": function (delta, manager) {
       let controls = manager.get('control'),
+        entity_manager = manager.get('entity'),
         map_manager = manager.get('map'),
         player_manager = manager.get('player'),
         player = player_manager.get_player(),
