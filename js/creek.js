@@ -594,6 +594,18 @@ let ResourceManager = (function () {
       sound.src = resource.url;
       return promise;
     },
+    add_image = function (image) {
+      if (!image || !image.id || !image.img) {
+        console.log("no image or image without id/img in add_image");
+        console.log("image was:");
+        console.log(image);
+        return;
+      }
+      if (resources['image'][image.id]) {
+        console.log("overwriting image " + image.id + " in add_image.");
+      }
+      resources['image'][image.id] = image;
+    },
     init = function (_manager) {
       console.log("ResourceManager init.");
       manager = _manager;
@@ -643,6 +655,7 @@ let ResourceManager = (function () {
       get_resources: get_resources,
       get_image: get_image,
       get_sound: get_sound,
+      add_image: add_image,
     };
   };
 })();
