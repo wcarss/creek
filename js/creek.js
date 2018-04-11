@@ -1,3 +1,4 @@
+"use strict";
 let GameManager = (function () {
   let init = function () {
     console.log("GameManager init.");
@@ -104,8 +105,9 @@ let ConfigManager = (function () {
     get_maps = function () {
       let map = null,
         id = null,
-        loading = [];
-        defined = { ... config.maps };
+        loading = [],
+        defined = { ... config.maps },
+        i = null;
 
       if (defined.to_load) {
         for (i in defined.to_load) {
@@ -392,7 +394,8 @@ let CookieManager = (function () {
     },
     load_cookies = function () {
       let cookie_pairs = document.cookie.split("; "),
-        cookie_pair = null;
+        cookie_pair = null,
+        index = null;
 
       last_cookies = cookies;
       cookies = {};
@@ -612,7 +615,8 @@ let ResourceManager = (function () {
       let parsed_resources = manager.get('config').get_resources(),
         resource_promise = null,
         resource = null,
-        promises = [];
+        promises = [],
+        i = null;
 
       for (i in parsed_resources) {
         resource = parsed_resources[i];
@@ -960,6 +964,8 @@ let MapManager = (function () {
       }
     },
     get_quadtree = function (map, leaf_size) {
+      let i = null, j = null;
+
       leaf_size = leaf_size || 25;
       map = map || maps[current_map_id];
 
@@ -981,7 +987,8 @@ let MapManager = (function () {
       }
     },
     load_if_needed = function () {
-      let to_remove = [];
+      let to_remove = [],
+        i = null;
 
       for (i in loading) {
         data = request_manager.get_data(loading[i]);
@@ -1466,7 +1473,8 @@ let EntityManager = (function () {
       texts.push(text);
     },
     remove_text = function (id) {
-      let to_remove = -1;
+      let to_remove = -1,
+        i = null;
 
       for (i in texts) {
         if (texts[i].id === id) {
@@ -1477,9 +1485,12 @@ let EntityManager = (function () {
       if (to_remove !== -1) {
         texts.splice(to_remove, 1);
       }
-    }
+    },
     collide = function (entity) {
-      let collisions = [], target = null;
+      let collisions = [],
+        target = null,
+        i = null;
+
       if (stale_entities()) {
         setup_entities();
       }
@@ -1641,6 +1652,8 @@ let AudioManager = (function () {
       return clip.duration();
     },
     pause_all = function () {
+      let i = null;
+
       for (i in clips) {
         if (clips[i].playing()) {
           clips[i].pause();
@@ -1649,22 +1662,30 @@ let AudioManager = (function () {
       }
     },
     unpause_all = function () {
+      let i = null;
+
       for (i in currently_paused) {
         get_clip(currently_paused[i]).play();
       }
       currently_paused = [];
     },
     stop_all = function () {
+      let i = null;
+
       for (i in clips) {
         clips[i].stop();
       }
     },
     volume_all = function (level) {
+      let i = null;
+
       for (i in clips) {
         clips[i].volume(level);
       }
     },
     mute_all = function (level) {
+      let i = null;
+
       for (i in clips) {
         clips[i].mute();
       }
@@ -1672,6 +1693,8 @@ let AudioManager = (function () {
       all_muted = true;
     },
     unmute_all = function (level) {
+      let i = null;
+
       for (i in clips) {
         clips[i].unmute();
       }
@@ -1683,7 +1706,9 @@ let AudioManager = (function () {
     };
 
   let load_clips = function (loaded_clips) {
-    let clip = null;
+    let clip = null,
+      clip_data = null,
+      i = null;
 
     for (i in loaded_clips) {
       clip_data = loaded_clips[i];
@@ -1840,6 +1865,8 @@ let RenderManager = (function () {
     next_frame = function () {
       current_time = performance.now();
       let delta = ((current_time - last_time)/1000) * frames_per_second;
+      let di = null,
+        ti = null;
       last_time = current_time;
 
       let world_offset = manager.get('camera').get_offset(),
@@ -1847,11 +1874,11 @@ let RenderManager = (function () {
         text_list = entities.get_texts(),
         context = context_manager.get_context();
 
-      for (i in draw_list) {
-        draw(draw_list[i], context, delta, world_offset);
+      for (di in draw_list) {
+        draw(draw_list[di], context, delta, world_offset);
       }
-      for (i in text_list) {
-        text_draw(text_list[i], context, delta, world_offset);
+      for (ti in text_list) {
+        text_draw(text_list[ti], context, delta, world_offset);
       }
       entities.update(delta);
       entities.load_if_needed();
@@ -1872,5 +1899,5 @@ let RenderManager = (function () {
       init: init,
       next_frame: next_frame,
     };
-  }
+  };
 })();
