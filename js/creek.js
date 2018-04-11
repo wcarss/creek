@@ -542,11 +542,8 @@ let ResourceManager = (function () {
       let sound = document.createElement("audio");
       let promise = new Promise(
         function (resolve, reject) {
-          sound.addEventListener("canplaythrough", function () {
-            console.log("sound " + resource.url + " loaded.");
-            sound.loop = resource.looping;
-            sound.muted = resource.muted;
-            sound.volume = resource.volume;
+          sound.addEventListener("loadstart", function () {
+            console.log("sound " + resource.url + " began loading.");
             resolve({
               type: resource.type,
               id: resource.id,
@@ -560,6 +557,10 @@ let ResourceManager = (function () {
           }, false);
         }
       );
+      sound.preload = "none";
+      sound.loop = resource.looping;
+      sound.muted = resource.muted;
+      sound.volume = resource.volume;
       sound.src = resource.url;
       return promise;
     },
