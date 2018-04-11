@@ -107,7 +107,8 @@ let ConfigManager = (function () {
         id = null,
         loading = [],
         defined = { ... config.maps },
-        i = null;
+        i = null,
+        request_manager = manager.get('request');
 
       if (defined.to_load) {
         for (i in defined.to_load) {
@@ -988,7 +989,9 @@ let MapManager = (function () {
     },
     load_if_needed = function () {
       let to_remove = [],
-        i = null;
+        i = null,
+        request_manager = manager.get('request'),
+        data = null;
 
       for (i in loading) {
         data = request_manager.get_data(loading[i]);
