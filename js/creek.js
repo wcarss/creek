@@ -125,11 +125,13 @@ let ConfigManager = (function () {
       let state = {
         init: function () {},
         update: function () {},
+        post_resource_load: function () {},
       };
 
       if (config.game) {
         state.init = config.game.init || state.init;
         state.update = config.game.update || state.update;
+        state.post_resource_load = config.game.post_resource_load || state.post_resource_load;
       }
 
       return state;
@@ -616,16 +618,23 @@ let ResourceManager = (function () {
 
       Promise.all(promises).then(
         function (loaded) {
+          let resource = null,
+            resource_index = null;
+
           for (resource_index in loaded) {
             resource = loaded[resource_index];
             resources[resource.type][resource.id] = resource;
           }
           console.log("resources after load are:");
           console.log(resources);
+          post_resource_load();
         }, function () {
           console.log("trouble loading resources.");
         }
       );
+    },
+    post_resource_load = function () {
+      manager.get('game_state').post_resource_load(manager);
     };
 
   return function () {
