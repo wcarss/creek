@@ -92,8 +92,12 @@ let ConfigManager = (function () {
       config = JSON.parse(config_spec);
       return config;
     },
-    get = function () {
-      return config;
+    get = function (id) {
+      if (id) {
+        return config[id];
+      } else {
+        return config;
+      }
     },
     set = function (k, v) {
       config[k] = v;
@@ -150,6 +154,7 @@ let ConfigManager = (function () {
     return {
       init: init,
       get_config: get,
+      get: get,
       set_config: set,
       get_player: get_player,
       get_maps: get_maps,
