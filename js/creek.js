@@ -165,6 +165,116 @@ let ConfigManager = (function () {
 })();
 
 
+let ScriptManager = (function () {
+  let manager = null,
+    scripts = {},
+    default_path = null,
+    new_script = function (id, path) {
+      let script = null;
+      path = path || default_path;
+
+      if (scripts[id]) {
+        console.log("attempted to overwrite script " + id);
+        return;
+      }
+
+      script = {
+        id: id,
+        url: path + id + ".js",
+        element: null,
+        loaded: null,
+        status: null,
+      };
+
+      scripts[id] = script;
+      return script;
+    },
+    load_script = function (id, path) {
+      let script = new_script(id, path);
+
+      if (script.element) {
+        console.log("attempted to overwrite script " + id + "'s element");
+        return;
+      }
+
+      script.element = document.createElement("script");
+      script.element.setAttribute('type', 'text/javascript');
+      script.element.setAttribute('async', true);
+      script.element.setAttribute('id', script.id);
+      script.element.onload = function () {
+        script.status = "success";
+        script.loaded = true;
+      };
+      script.element.onerror = function () {
+        console.log("error loading " + script.id + " script!");
+        script.status = "error";
+        script.loaded = false;
+      }
+
+      script.status = "loading";
+      script.element.setAttribute('src', script.url);
+
+      document.body.appendChild(script.element);
+      return script;
+    },
+    load_scripts = function (script_ids, path) {
+      let i = null;
+
+      for (i in script_ids) {
+        load_script(script_ids[i], path);
+      }
+    },
+    get_script = function (id) {
+      return scripts[id];
+    },
+    get_scripts = function () {
+      return scripts;
+    },
+    all_loaded = function () {
+      let i = null;
+
+      for (i in scripts) {
+        if (scripts[i].loaded !== true) {
+          return false;
+        }
+      }
+
+      return true;
+    },
+    errors = function () {
+      let i = null,
+        errors = [];
+
+      for (i in scripts) {
+        if (scripts[i].status === "error") {
+          errors.push(scripts[i].id);
+        }
+      }
+
+      return errors;
+    },
+    init = function (_manager) {
+      let config_path = null;
+      console.log("ScriptManager init.");
+
+      manager = _manager;
+      config_path = manager.get('config').get('script_path');
+      default_path = config_path || "/resources/scripts/";
+    };
+
+  return function () {
+    return {
+      init: init,
+      load_script: load_script,
+      load_scripts: load_scripts,
+      get_script: get_script,
+      get_scripts: get_scripts,
+      all_loaded: all_loaded,
+      errors: errors
+    };
+  };
+})();
+
 
 let RequestManager = (function () {
   let manager = null,
