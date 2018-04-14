@@ -1,35 +1,42 @@
 "use strict";
 let GameManager = (function () {
-  let init = function () {
-    console.log("GameManager init.");
-    let config_manager = ConfigManager(),
+  let manager = null,
+    get_scripts = function () {
+      return manager.get('script').get_scripts();
+    },
+    init = function () {
+      console.log("GameManager init.");
+      let config_manager = ConfigManager();
+
       manager = Manager();
 
-    manager.init({
-      audio: AudioManager(),
-      camera: CameraManager(),
-      config: config_manager,
-      context: ContextManager(),
-      control: ControlManager(),
-      cookie: CookieManager(),
-      entity: EntityManager(),
-      game_state: config_manager.get_game_state(),
-      map: MapManager(),
-      physics: PhysicsManager(),
-      player: PlayerManager(),
-      render: RenderManager(),
-      request: RequestManager(),
-      resource: ResourceManager(),
-      ui: UIManager(),
-    });
+      manager.init({
+        audio: AudioManager(),
+        camera: CameraManager(),
+        config: config_manager,
+        context: ContextManager(),
+        control: ControlManager(),
+        cookie: CookieManager(),
+        entity: EntityManager(),
+        game_state: config_manager.get_game_state(),
+        map: MapManager(),
+        physics: PhysicsManager(),
+        player: PlayerManager(),
+        render: RenderManager(),
+        request: RequestManager(),
+        resource: ResourceManager(),
+        script: ScriptManager(),
+        ui: UIManager(),
+      });
 
-    manager.get('audio').load_clips(manager.get('resource').get_resources()['sound']);
-    manager.get('render').next_frame();
-  };
+      manager.get('audio').load_clips(manager.get('resource').get_resources()['sound']);
+      manager.get('render').next_frame();
+    };
 
   return function () {
     return {
       init: init,
+      get_scripts: get_scripts
     };
   };
 })();
@@ -109,16 +116,17 @@ let ConfigManager = (function () {
     get_maps = function () {
       let map = null,
         id = null,
+        script = null,
         loading = [],
         defined = { ... config.maps },
         i = null,
-        request_manager = manager.get('request');
+        script_manager = manager.get('script');
 
       if (defined.to_load) {
         for (i in defined.to_load) {
           map = defined.to_load[i];
-          id = request_manager.get("resources/maps/" + map + ".json", map);
-          loading.push(id);
+          script = script_manager.load_script(map, "resources/maps/");
+          loading.push(script.id);
         }
         delete defined.to_load;
       }
@@ -1105,13 +1113,18 @@ let MapManager = (function () {
     load_if_needed = function () {
       let to_remove = [],
         i = null,
-        request_manager = manager.get('request'),
-        data = null;
+        script_manager = manager.get('script'),
+        script = null;
 
       for (i in loading) {
-        data = request_manager.get_data(loading[i]);
-        if (data && data.map) {
-          maps[data.map.id] = data.map;
+        script = script_manager.get_script(loading[i]);
+
+        if (!script) {
+          script = script_manager.load_script(loading[i]);
+        }
+
+        if (script.loaded && script.data) {
+          maps[script.data.map.id] = script.data.map;
           to_remove.push(i);
         }
       }
