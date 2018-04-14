@@ -1,0 +1,65 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Dynamic Script Load Test</title>
+  </head>
+  <body>
+    <div id="stage">
+    </div>
+    <script>
+      let scripts = {},
+        script_names = [
+          "test_script_1",
+          "test_script_2",
+        ],
+        script = null,
+        element = null,
+        i = null;
+
+      for (i in script_names) {
+        element = document.createElement('script');
+
+        script = {
+          "id": script_names[i],
+          "url": "/resources/scripts/" + script_names[i] + ".js",
+          "element": element,
+          "status": "loading",
+        };
+
+        scripts[script.id] = script;
+
+        element.setAttribute('src', script.url);
+        element.setAttribute('async', true);
+        element.setAttribute('type', 'text/javascript');
+        element.onload = (function () {
+          let name = script.id;
+          return function () {
+            console.log("setting " + name + " to success!!!!!!");
+            scripts[name].status = "success";
+          };
+        })();
+
+        document.body.appendChild(element);
+      }
+
+      let frame = function () {
+        let still_loading = false;
+
+        for (i in script_names) {
+          if (scripts[script_names[i]].status === "success" && scripts[script_names[i]].data) {
+            scripts[script_names[i]].data.init();
+            scripts[script_names[i]].status = "initialized";
+          } else if (scripts[script_names[i]].status !== "initialized") {
+            still_loading = true;
+          }
+        }
+
+        if (still_loading) {
+          requestAnimationFrame(frame);
+        }
+      };
+
+      requestAnimationFrame(frame);
+    </script>
+  </body>
+</html>
