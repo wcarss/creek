@@ -806,7 +806,14 @@ let ControlManager = (function () {
       return controls.buttons[id] && controls.buttons[id].down;
     },
     mouse = function () {
-      return contols.mouse.down;
+      return controls.mouse.down;
+    },
+    mouse_coords = function () {
+      console.log(controls.mouse);
+      return {
+        x: controls.mouse.x,
+        y: controls.mouse.y
+      };
     },
     get_controls = function () {
       return controls;
@@ -867,6 +874,8 @@ let ControlManager = (function () {
 
       window.addEventListener("mousedown", function (e) {
         controls.mouse.down_event = e;
+        controls.mouse.x = e.x;
+        controls.mouse.y = e.y;
         controls.mouse.down = true;
         controls.mouse.down_at = performance.now();
       });
@@ -884,6 +893,8 @@ let ControlManager = (function () {
 
       window.addEventListener("mousemove", function (e) {
         controls.mouse.move_event = e;
+        controls.mouse.x = e.x;
+        controls.mouse.y = e.y;
         if (controls.mouse.down === true && controls.mouse.dragging !== true) {
           controls.mouse.dragging = true;
           controls.mouse.dragging_at = performance.now();
@@ -901,6 +912,7 @@ let ControlManager = (function () {
       keys: keys,
       buttons: buttons,
       mouse: mouse,
+      mouse_coords: mouse_coords,
     };
   };
 })();
