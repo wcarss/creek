@@ -484,6 +484,7 @@ let ContextManager = (function () {
       set_canvas: set_canvas,
       get_width: get_width,
       get_height: get_height,
+      resize: resize,
     };
   };
 })();
