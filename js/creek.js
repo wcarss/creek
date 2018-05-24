@@ -595,8 +595,8 @@ let CameraManager = (function () {
 
       let bounds = map_manager.get_bounds();
 
-      x = clamp(x, bounds.x, bounds.width);
-      y = clamp(y, bounds.y, bounds.height);
+      x = clamp(x, bounds.x, bounds.width-camera.width);
+      y = clamp(y, bounds.y, bounds.height-camera.height);
 
       camera.x = x;
       camera.y = y;
