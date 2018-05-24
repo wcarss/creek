@@ -1643,10 +1643,13 @@ let EntityManager = (function () {
     collide = function (entity) {
       let collisions = [],
         target = null,
-        i = null;
+        i = null,
+        local_entities = null;
 
-      for (i in entities) {
-        target = entities[i];
+      local_entities = quadtree_get_by_range(tree, entity.x-entity.x_size, entity.y-entity.y_size, entity.x+2*entity.x_size, entity.y+2*entity.y_size);
+
+      for (i in local_entities) {
+        target = local_entities[i];
         if (target.active !== false && entity.id !== target.id && physics.collide(entity, target)) {
           collisions.push(target);
         }
@@ -1659,6 +1662,7 @@ let EntityManager = (function () {
         ti = null;
 
       entities = get_entities();
+
       for (ei in entities) {
         if (entities[ei].update) {
           entities[ei].update(delta, manager);
