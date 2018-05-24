@@ -814,7 +814,6 @@ let ControlManager = (function () {
       return controls.mouse.down;
     },
     mouse_coords = function () {
-      console.log(controls.mouse);
       return {
         x: controls.mouse.x,
         y: controls.mouse.y
