@@ -1514,12 +1514,15 @@ let EntityManager = (function () {
     clear_entities = function () {
       console.log("clearing all entities yo");
     },
-    get_entities = function () {
+    get_entities = function (options) {
+      options = options || {};
+      let setup = options.setup;
+
       if (maps.is_loading()) {
         return entities;
       }
 
-      if (last_updated && (performance.now() - last_updated < 50)) {
+      if (!setup && last_updated && (performance.now() - last_updated < 50)) {
         return entities;
       }
       last_updated = performance.now();
@@ -1603,7 +1606,7 @@ let EntityManager = (function () {
       player.modify_player('layer', current_map.player_layer);
       tree = maps.get_quadtree(current_map);
       layers.splice(current_map.player_layer, 1);
-      entities = get_entities();
+      entities = get_entities({setup: true});
     },
     move_entity = function (entity, x, y) {
       if (maps.is_loading()) {
