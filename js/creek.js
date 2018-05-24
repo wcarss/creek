@@ -1980,7 +1980,16 @@ let RenderManager = (function () {
 
     draw = function (tile, context, delta, offset) {
       let resource = resources.get_image(tile.img),
-        source_x = 0, source_y = 0, source_width = 0, source_height = 0;
+        source_x = 0, source_y = 0, source_width = 0, source_height = 0,
+        x_pos = 0, y_pos = 0,
+        saved_style = null;
+
+      x_pos = tile.x - offset.x;
+      y_pos = tile.y - offset.y
+      if (tile.offset_type === "camera") {
+        x_pos = tile.ui_x;
+        y_pos = tile.ui_y;
+      }
 
       if (resource && tile.active !== false) {
         source_x = tile.source_x || resource.source_x;
@@ -1992,10 +2001,20 @@ let RenderManager = (function () {
           resource.img,
           source_x, source_y,
           source_width, source_height,
-          tile.x-offset.x, tile.y-offset.y,
+          x_pos, y_pos,
           tile.x_scale * source_width,
           tile.y_scale * source_height
         );
+      } else if (tile.render_type === "fillRect") {
+        saved_style = context.fillStyle;
+        context.fillStyle = tile.img;
+        context.fillRect(x_pos, y_pos, tile.x_size, tile.y_size);
+        context.fillStyle = saved_style;
+      } else if (tile.render_type === "strokeRect") {
+        saved_style = context.strokeStyle;
+        context.strokeStyle = tile.img;
+        context.strokeRect(x_pos, y_pos, tile.x_size, tile.y_size);
+        context.strokeStyle = saved_style;
       }
     },
     text_draw = function (text, context, delta, offset) {
