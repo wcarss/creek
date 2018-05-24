@@ -1087,13 +1087,14 @@ let MapManager = (function () {
       let now = performance.now();
 
       // don't allow changes too frequently or if still loading
-      if (is_loading(map_id) || (last_change_time && (now - last_change_time < min_change_time))) {
+      if (maps[map_id].initialized || (is_loading(map_id) || (last_change_time && (now - last_change_time < min_change_time)))) {
         return false;
       }
 
       // teardown actions in old map (if any)
-      if (last_change_time !== null && maps[current_map_id].deinit) {
+      if (maps[current_map_id].initialized && last_change_time !== null && maps[current_map_id].deinit) {
         maps[current_map_id].deinit(manager);
+        maps[current_map_id].initialized = false;
       }
 
       // actually change the map
@@ -1103,6 +1104,7 @@ let MapManager = (function () {
       // setup actions in new map (if any)
       if (maps[current_map_id].init) {
         maps[current_map_id].init(manager);
+        maps[current_map_id].initialized = true;
       }
 
       last_change_time = now;
