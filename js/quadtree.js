@@ -1,4 +1,4 @@
-function build_quadtree(x, y, width, height, leaf_size) {
+function build_quadtree(x, y, width, height, leaf_size, entity_index) {
   // - this definition is the structure of each tree node
   // - they all have an x,y position and a width/height, which is their bounds
   // - the entity-list is non-null on leaves and null everywhere else
@@ -23,18 +23,50 @@ function build_quadtree(x, y, width, height, leaf_size) {
     bottom_left: null,
   };
 
+  if (!entity_index) {
+    entity_index = {};
+  }
+  tree.entity_index = entity_index;
+
   if (width > leaf_size && height > leaf_size) {
     let half_width = width/2,
       half_height = height/2;
 
     tree.bottom_right = build_quadtree(
-      x+half_width, y+half_height, half_width, half_height, leaf_size);
+      x+half_width,
+      y+half_height,
+      half_width,
+      half_height,
+      leaf_size,
+      tree.entity_index
+    );
+
     tree.top_right = build_quadtree(
-      x+half_width, y, half_width, half_height, leaf_size);
+      x+half_width,
+      y,
+      half_width,
+      half_height,
+      leaf_size,
+      tree.entity_index
+    );
+
     tree.bottom_left = build_quadtree(
-      x, y+half_height, half_width, half_height, leaf_size);
+      x,
+      y+half_height,
+      half_width,
+      half_height,
+      leaf_size,
+      tree.entity_index
+    );
+
     tree.top_left = build_quadtree(
-      x, y, half_width, half_height, leaf_size);
+      x,
+      y,
+      half_width,
+      half_height,
+      leaf_size,
+      tree.entity_index
+    );
 
     tree.entities = null;
   }
@@ -222,7 +254,12 @@ function quadtree_insert (tree, entity) {
   let x = entity.x,
     y = entity.y;
 
-  if (tree.entities !== null) {
+  if (tree === null) {
+    debugger;
+  } else if (tree.entities !== null) {
+    tree.entity_index[entity.id] = entity;
+    delete entity.quadtree_list;
+    entity.quadtree_list = tree.entities;
     return tree.entities.push(entity);
   }
 
@@ -231,39 +268,7 @@ function quadtree_insert (tree, entity) {
 }
 
 function quadtree_get_by_id (tree, entity_id) {
-  // return entity from leaf by its id
-  // this is a slow bear
-
-  if (tree.entities !== null) {
-    for (i in tree.entities) {
-      if (tree.entities[i].id === entity_id) {
-        return tree.entities[i];
-      }
-    }
-
-    // leaf-case: if no entity was found, return null
-    return null;
-  }
-
-  let entity = quadtree_get_by_id(tree.top_right, entity_id);
-  if (entity) {
-    return entity;
-  }
-  entity = quadtree_get_by_id(tree.top_left, entity_id);
-  if (entity) {
-    return entity;
-  }
-  entity = quadtree_get_by_id(tree.bottom_right, entity_id);
-  if (entity) {
-    return entity;
-  }
-  entity = quadtree_get_by_id(tree.bottom_left, entity_id);
-  if (entity) {
-    return entity;
-  }
-
-  // non-leaf not-found case
-  return null;
+  return tree.entity_index[entity_id];
 }
 
 function quadtree_get_by_coords (tree, x, y) {
@@ -289,39 +294,24 @@ function quadtree_get_by_coords (tree, x, y) {
   return quadtree_get_by_coords(corner, x, y);
 }
 
-function quadtree_remove_by_id (tree, entity_id) {
-  // remove entity by its id
-  // return entity from leaf by its id
-  if (tree.entities !== null) {
-    for (i in tree.entities) {
-      if (tree.entities[i].id === entity_id) {
-        return tree.entities.splice(i, 1)[0];
-      }
-    }
+function quadtree_remove_by_id (tree, entity_id, moving) {
+  let entity = tree.entity_index[entity_id];
+  let entity_index = null;
+  let deleted_entity = null;
 
-    // leaf case: entity not found
+  if (!entity) {
     return null;
   }
 
-  let entity = quadtree_remove_by_id(tree.top_right, entity_id);
-  if (entity) {
-    return entity;
-  }
-  entity = quadtree_remove_by_id(tree.top_left, entity_id);
-  if (entity) {
-    return entity;
-  }
-  entity = quadtree_remove_by_id(tree.bottom_right, entity_id);
-  if (entity) {
-    return entity;
-  }
-  entity = quadtree_remove_by_id(tree.bottom_left, entity_id);
-  if (entity) {
-    return entity;
-  }
+  delete tree.entity_index[entity_id];
 
-  // non-leaf-case: entity not found
-  return null;
+  for (entity_index in entity.quadtree_list) {
+    if (entity.quadtree_list[entity_index].id === entity.id) {
+      deleted_entity = entity.quadtree_list.splice(entity_index, 1);
+      delete entity.quadtree_list;
+      return deleted_entity[0];
+    }
+  }
 }
 
 function quadtree_get_by_range (tree, x, y, x2, y2) {
@@ -363,11 +353,12 @@ function quadtree_get_by_range (tree, x, y, x2, y2) {
   return entity_list;
 }
 
-function quadtree_remove_by_range (tree, x, y, x2, y2) {
+function quadtree_remove_by_range (tree, x, y, x2, y2, id) {
   // remove entities by coord range
 
   let epsilon = 0.01,
-    entity_list = [];
+    entity_list = [],
+    deleted_entity = null;
 
   if (tree.entities !== null) {
     let high_x = Math.max(x, x2) + epsilon,
@@ -378,6 +369,10 @@ function quadtree_remove_by_range (tree, x, y, x2, y2) {
 
     for (i in tree.entities) {
       e = tree.entities[i];
+      if (id && e.id !== id) {
+        continue;
+      }
+
       if (high_x > e.x && low_x < e.x && high_y > e.y && low_y < e.y) {
         to_splice.push(i);
       }
@@ -387,7 +382,9 @@ function quadtree_remove_by_range (tree, x, y, x2, y2) {
     // indices would shift if you walk forward or delete-as-you-go
     // also, record ids as we splice
     for (i = to_splice.length-1; i >= 0; i--) {
-      entity_list.push(tree.entities.splice(to_splice[i], 1)[0]);
+      deleted_entity = tree.entities.splice(to_splice[i], 1)[0];
+      delete tree.entity_index[deleted_entity.id];
+      entity_list.push(deleted_entity);
     }
 
     return entity_list;
@@ -395,16 +392,16 @@ function quadtree_remove_by_range (tree, x, y, x2, y2) {
 
   let corners = quadtree_range_check_corners(tree, x, y, x2, y2);
   if (corners.bottom_right) {
-    entity_list = entity_list.concat(quadtree_remove_by_range(tree.bottom_right, x, y, x2, y2));
+    entity_list = entity_list.concat(quadtree_remove_by_range(tree.bottom_right, x, y, x2, y2, id));
   }
   if (corners.top_right) {
-    entity_list = entity_list.concat(quadtree_remove_by_range(tree.top_right, x, y, x2, y2));
+    entity_list = entity_list.concat(quadtree_remove_by_range(tree.top_right, x, y, x2, y2, id));
   }
   if (corners.bottom_left) {
-    entity_list = entity_list.concat(quadtree_remove_by_range(tree.bottom_left, x, y, x2, y2));
+    entity_list = entity_list.concat(quadtree_remove_by_range(tree.bottom_left, x, y, x2, y2, id));
   }
   if (corners.top_left) {
-    entity_list = entity_list.concat(quadtree_remove_by_range(tree.top_left, x, y, x2, y2));
+    entity_list = entity_list.concat(quadtree_remove_by_range(tree.top_left, x, y, x2, y2, id));
   }
 
   return entity_list;
