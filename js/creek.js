@@ -1612,10 +1612,7 @@ let EntityManager = (function () {
       if (maps.is_loading()) {
         return;
       }
-      quadtree_remove_by_id(tree, entity.id);
-      entity.x = x;
-      entity.y = y;
-      quadtree_insert(tree, entity);
+      quadtree_move(tree, entity, x, y);
     },
     add_entity = function (entity) {
       quadtree_insert(tree, entity);

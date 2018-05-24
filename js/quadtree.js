@@ -249,6 +249,17 @@ function quadtree_range_check_corners (tree, x, y, x2, y2) {
   return final_corners;
 }
 
+function quadtree_move (tree, entity, x, y) {
+  entity.quadtree_moving = true;
+  entity.x = x;
+  entity.y = y;
+  quadtree_remove_by_id(tree, entity.id, true);
+  if (tree.entity_index[entity.id]) {
+    quadtree_insert(tree, entity);
+  }
+  delete entity.quadtree_moving;
+}
+
 function quadtree_insert (tree, entity) {
   // insert at correct leaf, use entity's x+y
   let x = entity.x,
@@ -256,7 +267,7 @@ function quadtree_insert (tree, entity) {
 
   if (tree === null) {
     debugger;
-  } else if (tree.entities !== null) {
+  } else if (tree.entities !== null && entity.quadtree_removed !== true) {
     tree.entity_index[entity.id] = entity;
     delete entity.quadtree_list;
     entity.quadtree_list = tree.entities;
@@ -294,6 +305,7 @@ function quadtree_get_by_coords (tree, x, y) {
   return quadtree_get_by_coords(corner, x, y);
 }
 
+
 function quadtree_remove_by_id (tree, entity_id, moving) {
   let entity = tree.entity_index[entity_id];
   let entity_index = null;
@@ -303,7 +315,10 @@ function quadtree_remove_by_id (tree, entity_id, moving) {
     return null;
   }
 
-  delete tree.entity_index[entity_id];
+  if (!moving) {
+    delete tree.entity_index[entity_id];
+    entity.quadtree_removed = true;
+  }
 
   for (entity_index in entity.quadtree_list) {
     if (entity.quadtree_list[entity_index].id === entity.id) {
@@ -383,6 +398,7 @@ function quadtree_remove_by_range (tree, x, y, x2, y2, id) {
     // also, record ids as we splice
     for (i = to_splice.length-1; i >= 0; i--) {
       deleted_entity = tree.entities.splice(to_splice[i], 1)[0];
+      deleted_entity.quadtree_removed = true;
       delete tree.entity_index[deleted_entity.id];
       entity_list.push(deleted_entity);
     }
