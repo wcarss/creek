@@ -1618,7 +1618,7 @@ let EntityManager = (function () {
       quadtree_insert(tree, entity);
     },
     remove_entity = function (id) {
-      quadtree_remove_by_id(tree, id);
+      return quadtree_remove_by_id(tree, id);
     },
     add_text = function (text) {
       text.offset_type = text.offset_type || "camera";
