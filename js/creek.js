@@ -459,6 +459,10 @@ let ContextManager = (function () {
 
       stage = document.getElementById("stage");
       canvas = document.createElement("canvas");
+
+      document.body.style.overflow = "hidden";
+      stage.style.overflow = "hidden";
+      canvas.style.overflow = "hidden";
       canvas.id = canvas_id;
       canvas.style.display = "block";
 
