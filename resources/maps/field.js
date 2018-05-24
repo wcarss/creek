@@ -8,6 +8,28 @@
       "player_layer": 2.1,
       "id": "field",
       "needs_bg": true,
+      "init": function (manager) {
+        let camera_manager = manager.get('camera');
+        let context_manager = manager.get('context');
+        let camera = camera_manager.get_camera();
+        let new_width = context_manager.get_width();
+        let new_height = context_manager.get_height();
+        this.old_camera_width = camera.width;
+        this.old_camera_height = camera.height;
+
+        camera_manager.resize(new_width, new_height);
+      },
+      "deinit": function (manager) {
+        let camera_manager = manager.get('camera');
+        let context_manager = manager.get('context');
+        let camera = camera_manager.get_camera();
+        let new_width = context_manager.get_width();
+        let new_height = context_manager.get_height();
+        this.old_camera_width = camera.width;
+        this.old_camera_height = camera.height;
+
+        camera_manager.resize(this.old_camera_width, this.old_camera_height);
+      },
       "update": function (delta, manager) {
         let entity_manager = manager.get('entity'),
           control_manager = manager.get('control'),

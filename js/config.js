@@ -183,7 +183,7 @@ let config_spec = {
   },
   "canvas_id": "canvas",
   "stage_id": "stage",
-  "fullscreen": true,
+  "fullscreen": false,
   "frames_per_second": 40,
   "resource_url": "resources.json",
   "controls": null,
@@ -267,10 +267,11 @@ let config_spec = {
       "test"
     ],
     "map1": {
-      "height": 2000,
+      "height": 600,
       "width": 600,
       "id": "map1",
       "player_layer": 2,
+      "needs_bg": true,
       "init": function (manager) {
         console.log("map " + this.id + ": initialized");
       },
@@ -419,9 +420,10 @@ let config_spec = {
     },
     "map2": {
       "id": "map2",
-      "height": 500,
-      "width": 500,
+      "height": 600,
+      "width": 600,
       "player_layer": 2,
+      "needs_bg": true,
       "layers": [
         [
           {
