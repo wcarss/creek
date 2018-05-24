@@ -1536,9 +1536,12 @@ let EntityManager = (function () {
         debugger;
       }
 
-      let background = quadtree_get_by_id(tree, "bg1");
-      if (background) {
-        et.push(quadtree_get_by_id(tree, "bg1"));
+      let background = null;
+      if (manager.get('map').get_map().needs_bg) {
+        background = quadtree_get_by_id(tree, "bg1");
+        if (background) {
+          et.push(background);
+        }
       }
 
       return et.sort(
