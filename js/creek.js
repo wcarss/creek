@@ -593,7 +593,7 @@ let CameraManager = (function () {
         resize(context_manager.get_width(), context_manager.get_height());
       }
 
-      let bounds = map_manager.get_bounds();
+      let bounds = manager.get('map').get_bounds();
 
       x = clamp(x, bounds.x, bounds.width-camera.width);
       y = clamp(y, bounds.y, bounds.height-camera.height);
@@ -620,7 +620,6 @@ let CameraManager = (function () {
 
       fullscreen = config.fullscreen || false;
 
-      map_manager = manager.get('map');
       context_manager = manager.get('context');
 
       if (fullscreen) {
@@ -1184,7 +1183,6 @@ let MapManager = (function () {
       }
       min_change_time = config['min_map_change_time'] || 150;
       current_map_id = config['initial_map_id'];
-      change_maps(current_map_id);
     };
 
   return function () {
@@ -1687,6 +1685,7 @@ let EntityManager = (function () {
       console.log("setting up the ui manager");
       game_state = manager.get('game_state');
       last_particle_added = performance.now();
+      maps.change_maps(maps.get_current_map_id());
       setup_entities();
     };
 
