@@ -27,10 +27,12 @@ let GameManager = (function () {
         resource: ResourceManager(),
         script: ScriptManager(),
         ui: UIManager(),
+        data: DataManager(),
+        time: TimeManager()
       });
 
       manager.get('audio').load_clips(manager.get('resource').get_resources()['sound']);
-      manager.get('render').next_frame();
+      requestAnimationFrame(manager.get('render').lead_in);
     };
 
   return function () {
@@ -1988,10 +1990,260 @@ let AudioManager = (function () {
 })();
 
 
+let DataManager = (function () {
+  let manager = null,
+    data = {},
+
+    get = function (key) {
+      return data[key];
+    },
+    set = function (key, value) {
+      data[key] = value;
+    },
+    json_export = function () {
+      return JSON.stringify(data);
+    },
+    get_store = function () {
+      return data;
+    },
+    set_store = function (store) {
+      data = store;
+    };
+
+  let init = function (_manager) {
+    console.log("DataManager init.");
+    manager = _manager;
+  };
+
+  return function () {
+    return {
+      init: init,
+      get: get,
+      set: set,
+      get_store: get_store,
+      set_store, set_store,
+    };
+  };
+})();
+
+
+let TimeManager = (function () {
+  let manager = null,
+    frame_data = {
+      count: 0,
+      first_time: 0,
+      latest_time: 0,
+      previous_time: 0,
+      elapsed_time: 0,
+      update: function (current_time) {
+        this.count +=1 ;
+        this.previous_time = this.latest_time;
+        this.elapsed_time = this.latest_time - this.first_time;
+      },
+      init: function (current_time) {
+        this.first_time = current_time;
+        this.latest_time = current_time;
+      }
+    },
+    performance_data = {
+      count: 0,
+      first_time: 0,
+      latest_time: 0,
+      previous_time: 0,
+      elapsed_time: 0,
+      update: function () {
+        this.count += 1;
+        this.previous_time = this.latest_time;
+        this.latest_time = performance.now();
+        this.elapsed_time = this.latest_time - this.first_time;
+      },
+      init: function () {
+        this.first_time = performance.now();
+        this.latest_tiem = this.first_time;
+      }
+    },
+    turn_data = {
+      count: 0,
+      update: function () {
+        this.count += 1;
+      },
+      init: function () {
+        // this is a no-op for consistency's sake
+      }
+    },
+    timers = {};
+
+  let get_frame = function () {
+      return frame_data;
+    },
+    get_performance = function () {
+      return performance_data;
+    },
+    get_turns = function () {
+      return turn_data;
+    },
+    tick = function (current_time) {
+      frame_data.update(current_time);
+      performance_data.update();
+      turn_data.update();
+    },
+    start_timer = function (id, target) {
+      let timer = timers[id];
+
+      if (timer && timer.status === "running") {
+        console.log("tried to start an existing timer: " + id);
+      }
+
+      if (timer && (timer.status === "running" || timer.status === "stopped")) {
+        timer.status = "running";
+        timer.start_counts += 1;
+        timer.start_time = performance_data.latest_time;
+
+        return timer;
+      }
+
+      if (timer) {
+        console.log("Invalid timer status in start for timer: " + id);
+        debugger;
+        return;
+      }
+
+      timers[id] = {
+        status: "running",
+        create_time: performance_data.latest_time,
+        start_time: performance_data.latest_time,
+        stop_time: null,
+        target: target,
+        start_count: 1,
+        stop_count: 0,
+        elapsed: function (current_time) {
+          if (this.status === "running") {
+            return current_time - this.start_time;
+          }
+
+          return this.stop_time - this.start_time;
+        },
+        due: function (current_time) {
+          let target_time = this.start_time + this.target;
+
+          if (isNaN(target_time)) {
+            console.log("called 'due' on targetless timer: " + this.id);
+            debugger;
+            return;
+          }
+
+          if (this.status === "running") {
+            return (current_time - target_time) > 0;
+          }
+
+          return (this.stop_time - target_time) > 0;
+        }
+      };
+
+      return timers[id];
+    },
+    stop_timer = function (id) {
+      let timer = timers[id];
+
+      if (!timer) {
+        console.log("attempted to stop nonexistent timer " + id);
+        return;
+      }
+
+      if (timer && timer.status !== "running" && timer.status !== "stopped") {
+        console.log("Invalid timer status in stop for timer: " + id);
+        debugger;
+        return;
+      }
+
+      if (timer && timer.status === "stopped") {
+        console.log("stop called on stopped timer " + id);
+      }
+
+      timer.status = "stopped";
+      timer.stop_count += 1;
+      timer.stop_time = performance_data.latest_time;
+    },
+    timer_elapsed = function (id) {
+      let timer = timers[id];
+
+      if (!timer) {
+        console.log("attempted to check elapsed time of nonexistent timer: " + id);
+        return;
+      }
+
+      if (timer.status !== "running" && timer.status !== "stopped") {
+        console.log("Invalid timer status in elapsed for timer: " + id);
+        debugger;
+        return;
+      }
+
+      return timer.elapsed(performance_data.latest_time);
+    },
+    timer_due = function (id) {
+      let timer = timers[id];
+
+      if (!timer) {
+        console.log("attempted to check elapsed time of nonexistent timer: " + id);
+        return;
+      }
+
+      if (timer.status !== "running" && timer.status !== "stopped") {
+        console.log("Invalid timer status in 'due' for timer: " + id);
+        debugger;
+        return;
+      }
+
+      return timer.due(performance_data.latest_time);
+    },
+    destroy_timer = function (id) {
+      let timer = timers[id];
+
+      if (!timer) {
+        console.log("attempted to destroy non-existent timer.");
+        debugger;
+        return;
+      }
+
+      timer.status = "destroyed";
+      delete timers[id];
+
+      return timer;
+    },
+    get_timer = function (id) {
+      return timers[id];
+    };
+
+  let init = function (_manager) {
+    console.log("TimeManager init.");
+    manager = _manager;
+    turn_data.init();
+    performance_data.init();
+    // frame data is initialized by the renderer lead-in
+  };
+
+  return function () {
+    return {
+      init: init,
+      get_frame: get_frame,
+      get_performance: get_performance,
+      get_turns: get_turns,
+      tick: tick,
+      start_timer: start_timer,
+      stop_timer: stop_timer,
+      timer_elapsed: timer_elapsed,
+      timer_due: timer_due,
+      destroy_timer: destroy_timer,
+      get_timer: get_timer
+    };
+  };
+})();
+
 
 let RenderManager = (function () {
   let manager = null,
     context_manager = null,
+    time_manager = null,
     frames_per_second = null,
     last_time = performance.now(),
     current_time = performance.now(),
@@ -2070,7 +2322,18 @@ let RenderManager = (function () {
       context.font = text.font;
       context.fillText(text.text, x, y);
     },
-    next_frame = function () {
+    lead_in = function (current_time) {
+      manager.get('time').get_frame().init(current_time);
+      requestAnimationFrame(next_frame);
+    },
+    next_frame = function (frame_time) {
+      time_manager.tick(frame_time);
+      let current_turn = time_manager.get_turns().count;
+      if (manager.get('data').get('active_turn') !== manager.get('data').get('turn_ended')) {
+        console.log("canceling frame " + current_turn);
+      }
+      manager.get('data').set('active_turn', current_turn);
+
       current_time = performance.now();
       let delta = ((current_time - last_time)/1000) * frames_per_second;
       let di = null,
@@ -2092,11 +2355,13 @@ let RenderManager = (function () {
       entities.load_if_needed();
 
       requestAnimationFrame(next_frame);
+      manager.get('data').set('turn_ended', current_turn);
     },
     init = function (_manager) {
       console.log("RenderManager init.");
       manager = _manager;
       frames_per_second = manager.get('config').get_config()['frames_per_second'];
+      time_manager = manager.get('time');
       context_manager = manager.get('context');
       resources = manager.get('resource');
       entities = manager.get('entity');
@@ -2106,6 +2371,7 @@ let RenderManager = (function () {
     return {
       init: init,
       next_frame: next_frame,
+      lead_in: lead_in,
     };
   };
 })();
