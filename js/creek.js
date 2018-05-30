@@ -1761,14 +1761,26 @@ let AudioManager = (function () {
     },
     play = function (clip_id) {
       let clip = get_clip(clip_id);
+      if (!clip) {
+        console.log("failed to play audio clip: " + clip_id);
+        return;
+      }
       clip.play();
     },
     pause = function (clip_id) {
       let clip = get_clip(clip_id);
+      if (!clip) {
+        console.log("failed to pause audio clip: " + clip_id);
+        return;
+      }
       clip.pause();
     },
     stop = function (clip_id) {
       let clip = get_clip(clip_id);
+      if (!clip) {
+        console.log("failed to stop audio clip: " + clip_id);
+        return;
+      }
       clip.stop();
     },
     volume = function (clip_id, level) {
