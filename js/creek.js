@@ -679,16 +679,41 @@ let ResourceManager = (function () {
         function(resolve, reject) {
           img.addEventListener("load", function () {
             console.log("image " + resource.url + " loaded.");
+            let local_canvas = document.createElement("canvas");
+            let local_context = null;
+
+            let dest_x = resource.x || 0;
+            let dest_y = resource.y || 0;
+            let dest_width = resource.width || resource.source_width;
+            let dest_height = resource.height || resource.source_height;
+
+            local_canvas.width = dest_width;
+            local_canvas.height = dest_height;
+            local_context = local_canvas.getContext("2d");
+
+            local_context.drawImage(
+              img,
+              resource.source_x, resource.source_y,
+              resource.source_width, resource.source_height,
+              dest_x, dest_y,
+              dest_width, dest_height
+            );
+
             resolve({
               "type": resource.type,
               "id": resource.id,
               "url": resource.url,
-              "img": img,
-              "source_x": resource.source_x,
-              "source_y": resource.source_y,
-              "source_width": resource.source_width,
-              "source_height": resource.source_height,
+              "img": local_canvas,
+              "original_source_x": resource.source_x,
+              "original_source_y": resource.source_y,
+              "original_source_width": resource.source_width,
+              "original_source_height": resource.source_height,
+              "source_x": dest_x,
+              "source_y": dest_y,
+              "source_width": dest_width,
+              "source_height": dest_height,
             });
+
           }, false);
           img.addEventListener("error", function () {
             console.log("image " + resource.url + " failed to load.");
@@ -1977,14 +2002,21 @@ let RenderManager = (function () {
     draw = function (tile, context, delta, offset) {
       let resource = resources.get_image(tile.img),
         source_x = 0, source_y = 0, source_width = 0, source_height = 0,
-        x_pos = 0, y_pos = 0,
+        dest_x = 0, dest_y = 0, dest_width = 0, dest_height = 0,
         saved_style = null;
 
-      x_pos = tile.x - offset.x;
-      y_pos = tile.y - offset.y
+      dest_x = tile.x - offset.x;
+      dest_y = tile.y - offset.y
+      if (!tile.x_size) {
+        console.log(tile.img);
+      }
+
+      dest_width = tile.x_size;
+      dest_height = tile.y_size;
+
       if (tile.offset_type === "camera") {
-        x_pos = tile.ui_x;
-        y_pos = tile.ui_y;
+        dest_x = tile.ui_x;
+        dest_y = tile.ui_y;
       }
 
       if (resource && tile.active !== false) {
@@ -1992,24 +2024,36 @@ let RenderManager = (function () {
         source_y = tile.source_y || resource.source_y;
         source_width = tile.source_width || resource.source_width;
         source_height = tile.source_height || resource.source_height;
+        dest_width = dest_width || tile.x_scale * resource.source_width;
+        dest_height = dest_height || tile.y_scale * resource.source_height;
 
-        context.drawImage(
-          resource.img,
-          source_x, source_y,
-          source_width, source_height,
-          x_pos, y_pos,
-          tile.x_scale * source_width,
-          tile.y_scale * source_height
-        );
+        if (dest_width === resource.source_width &&
+          dest_height === resource.source_height &&
+          source_x === 0 &&
+          source_y === 0
+        ) {
+          context.drawImage(
+            resource.img,
+            dest_x, dest_y
+          );
+        } else {
+          context.drawImage(
+            resource.img,
+            source_x, source_y,
+            source_width, source_height,
+            dest_x, dest_y,
+            dest_width, dest_height
+          );
+        }
       } else if (tile.render_type === "fillRect") {
         saved_style = context.fillStyle;
         context.fillStyle = tile.img;
-        context.fillRect(x_pos, y_pos, tile.x_size, tile.y_size);
+        context.fillRect(dest_x, dest_y, dest_width, dest_height);
         context.fillStyle = saved_style;
       } else if (tile.render_type === "strokeRect") {
         saved_style = context.strokeStyle;
         context.strokeStyle = tile.img;
-        context.strokeRect(x_pos, y_pos, tile.x_size, tile.y_size);
+        context.strokeRect(dest_x, dest_y, dest_width, dest_height);
         context.strokeStyle = saved_style;
       }
     },
