@@ -1539,18 +1539,13 @@ let EntityManager = (function () {
     clear_entities = function () {
       console.log("clearing all entities yo");
     },
-    get_entities = function (options) {
-      options = options || {};
-      let setup = options.setup;
-
+    get_entities = function () {
+      return entities;
+    },
+    refresh_view = function (options) {
       if (maps.is_loading()) {
         return entities;
       }
-
-      if (!setup && last_updated && (performance.now() - last_updated < 50)) {
-        return entities;
-      }
-      last_updated = performance.now();
 
       let camera = camera_manager.get_camera(),
         x = camera.x-camera.left_margin,
@@ -1572,11 +1567,13 @@ let EntityManager = (function () {
         }
       }
 
-      return et.sort(
+      entities = et.sort(
         function (a, b) {
           return a.layer - b.layer;
         }
       );
+
+      return entities;
     },
     get_texts = function () {
       return texts;
@@ -1631,7 +1628,7 @@ let EntityManager = (function () {
       player.modify_player('layer', current_map.player_layer);
       tree = maps.get_quadtree(current_map);
       layers.splice(current_map.player_layer, 1);
-      entities = get_entities({setup: true});
+      entities = refresh_view();
     },
     move_entity = function (entity, x, y) {
       if (maps.is_loading()) {
@@ -1683,8 +1680,6 @@ let EntityManager = (function () {
       let ei = null,
         ti = null;
 
-      entities = get_entities();
-
       for (ei in entities) {
         if (entities[ei].update) {
           entities[ei].update(delta, manager);
@@ -1723,6 +1718,7 @@ let EntityManager = (function () {
       get_entities: get_entities,
       get_entity: get_entity,
       setup_entities: setup_entities,
+      refresh_view: refresh_view,
       update: update,
       collide: collide,
       move_entity: move_entity,
@@ -2339,6 +2335,8 @@ let RenderManager = (function () {
       let di = null,
         ti = null;
       last_time = current_time;
+
+      entities.refresh_view();
 
       let world_offset = manager.get('camera').get_offset(),
         draw_list = entities.get_entities(),
