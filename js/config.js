@@ -85,7 +85,7 @@ let config_spec = {
 
       this.map_text = {
         id: "map",
-        text: "map: " + map_manager.get_current_map_id,
+        text: "map: " + map_manager.get_current_map_id(),
         x: 10,
         y: 38,
         offset_type: "camera",
