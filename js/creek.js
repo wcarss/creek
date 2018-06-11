@@ -399,40 +399,67 @@ let RequestManager = (function () {
 
 let ContextManager = (function () {
   let manager = null,
-    context = null,
-    canvas = null,
+    canvases = {
+    },
     fullscreen = false,
-    width = 0,
-    height = 0,
-    canvas_id = "",
-    stage_id = "",
-    get_context = function () {
-      return context;
+    get_context = function (id) {
+      if (!id) {
+        id = "main";
+      }
+
+      return canvases[id].context;
     },
-    get_canvas = function () {
-      return canvas;
+    get_canvas = function (id) {
+      if (!id) {
+        id = "main";
+      }
+
+      return canvases[id].canvas;
     },
-    get_width = function () {
-      return width;
+    get_width = function (id) {
+      if (!id) {
+        id = "main";
+      }
+
+      return canvases[id].width;
     },
-    get_height = function () {
-      return height;
+    get_height = function (id) {
+      if (!id) {
+        id = "main";
+      }
+
+      return canvases[id].height;
     },
-    set_context = function (new_context) {
-      context = new_context;
-      return context;
+    set_context = function (id, new_context) {
+      if (!id) {
+        id = "main";
+      }
+
+      canvases[id].context = new_context;
+      return canvases[id].context;
     },
-    set_canvas = function (new_canvas) {
-      canvas = new_canvas;
-      context = canvas.getContext("2d");
-      return canvas;
+    set_canvas = function (id, new_canvas) {
+      if (!id) {
+        id = "main";
+      }
+      canvases[id].canvas = new_canvas;
+      canvases[id].context = canvases[id].canvas.getContext("2d");
+      return canvases[id].canvas;
     },
     resize = function (event, x_size, y_size) {
-      width = x_size || max_width();
-      height = y_size || max_height();
-      canvas.width = width;
-      canvas.height = height;
-      set_canvas(canvas);
+      let width = x_size || max_width();
+      let height = y_size || max_height();
+      let index = null;
+      let canvas = null;
+
+      for (index in canvases) {
+        canvas = canvases[index];
+        canvas.canvas.width = width;
+        canvas.canvas.height = height;
+        canvas.width = width;
+        canvas.height = height;
+        set_canvas(canvas.id, canvas.canvas);
+      }
     },
     make_fullscreen = function () {
       window.addEventListener("resize", resize);
@@ -451,30 +478,40 @@ let ContextManager = (function () {
       console.log("ContextManager init.");
       manager = _manager;
       let config = manager.get('config').get_config();
+      let canvas_list = config.canvas_list || ["main", "ui"];
+      let canvas_name = null;
+      let canvas = null;
+      let stage_id = config.stage_id || "stage";
       let stage = null;
-
-      canvas_id = config.canvas_id || "canvas";
-      stage_id = config.stage_id || "stage";
-      width = config.width || max_width();
-      height = config.height || max_height();
-      fullscreen = config.fullscreen || false;
-
-      stage = document.getElementById("stage");
-      canvas = document.createElement("canvas");
+      let index = null;
 
       document.body.style.overflow = "hidden";
+      stage = document.getElementById(stage_id);
       stage.style.overflow = "hidden";
-      canvas.style.overflow = "hidden";
-      canvas.id = canvas_id;
-      canvas.style.display = "block";
 
-      stage.appendChild(canvas);
-      resize(null, width, height);
+      for (index in canvas_list) {
+        canvas_name = canvas_list[index];
+        canvases[canvas_name] = {
+          id: config["canvas_" + canvas_name + "_id"] || canvas_name,
+          canvas: document.createElement("canvas"),
+          context: null,
+          width: 0,
+          height: 0,
+        }
+
+        canvas = canvases[canvas_name].canvas;
+        canvas.id = "canvas-" + canvases[canvas_name].id;
+        canvas.style.display = "block";
+        canvas.style.overflow = "hidden";
+        stage.appendChild(canvas);
+      }
+
+      fullscreen = config.fullscreen || false;
       if (fullscreen === true) {
         make_fullscreen();
       }
 
-      set_canvas(canvas);
+      resize(null, canvases["main"].width, canvases["main"].height);
     };
 
   return function () {
