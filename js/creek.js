@@ -430,6 +430,13 @@ let ContextManager = (function () {
 
       return canvases[id].height;
     },
+    get_z_index = function (id) {
+      if (!id) {
+        id = "main";
+      }
+
+      return canvases[id].z_index;
+    },
     set_context = function (id, new_context) {
       if (!id) {
         id = "main";
@@ -484,6 +491,7 @@ let ContextManager = (function () {
       let stage_id = config.stage_id || "stage";
       let stage = null;
       let index = null;
+      let z_index = 10;
 
       document.body.style.overflow = "hidden";
       stage = document.getElementById(stage_id);
@@ -497,12 +505,21 @@ let ContextManager = (function () {
           context: null,
           width: 0,
           height: 0,
+          top: config.offset_y || 0,
+          left: config.offset_x || 0,
+          z_index: config["canvas_" + canvas_name + "_z_index"] || z_index,
         }
+
+        z_index += 10;
 
         canvas = canvases[canvas_name].canvas;
         canvas.id = "canvas-" + canvases[canvas_name].id;
         canvas.style.display = "block";
         canvas.style.overflow = "hidden";
+        canvas.style.position = "absolute";
+        canvas.style.left = canvases[canvas_name].left;
+        canvas.style.top = canvases[canvas_name].top;
+        canvas.style['z-index'] = canvases[canvas_name].z_index
         stage.appendChild(canvas);
       }
 
@@ -523,6 +540,7 @@ let ContextManager = (function () {
       set_canvas: set_canvas,
       get_width: get_width,
       get_height: get_height,
+      get_z_index: get_z_index,
       resize: resize,
     };
   };
@@ -1007,11 +1025,15 @@ let UIManager = (function () {
 
       let element = document.createElement("div");
       let style_string = "position: absolute; display: inline-block; ";
+      let z_index = manager.get('context').get_z_index('ui') + 10;
+
       style_string += "left: " + button.x + "px; ";
       style_string += "top: " + button.y + "px; ";
       style_string += "width: " + button.width + "px; ";
       style_string += "height: " + button.height + "px; ";
       style_string += "background: " + button.background + "; ";
+      style_string += "z-index: " + z_index + "; ";
+
       if (button.style) {
         style_string += button.style;
       }
@@ -2356,7 +2378,13 @@ let RenderManager = (function () {
     },
     text_draw = function (text, context, delta, offset) {
       let x = text.x,
-        y = text.y;
+        y = text.y,
+        last_width = text.last_width || 0,
+        last_height = text.last_height || 0;
+
+      context.font = text.font;
+      text.last_width = context.measureText(text.text).width;
+      text.last_height = context.measureText("m").width;
 
       if (text.offset_type !== "camera") {
         x = x - offset.x;
@@ -2365,6 +2393,8 @@ let RenderManager = (function () {
 
       context.fillStyle = text.color;
       context.font = text.font;
+      // todo: dear measure text: how can you be so wrong
+      context.clearRect(x-14, y-14, last_width+20, last_height+10);
       context.fillText(text.text, x, y);
     },
     lead_in = function (current_time) {
@@ -2390,13 +2420,14 @@ let RenderManager = (function () {
       let world_offset = manager.get('camera').get_offset(),
         draw_list = entities.get_entities(),
         text_list = entities.get_texts(),
-        context = context_manager.get_context();
+        main_context = context_manager.get_context("main"),
+        text_context = context_manager.get_context("ui");
 
       for (di in draw_list) {
-        draw(draw_list[di], context, delta, world_offset);
+        draw(draw_list[di], main_context, delta, world_offset);
       }
       for (ti in text_list) {
-        text_draw(text_list[ti], context, delta, world_offset);
+        text_draw(text_list[ti], text_context, delta, world_offset);
       }
       entities.update(delta, manager);
       entities.load_if_needed();
