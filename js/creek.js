@@ -400,6 +400,12 @@ let RequestManager = (function () {
 
 let ContextManager = (function () {
   let manager = null,
+    defined = {
+      left: 0,
+      top: 0,
+      width: 0,
+      height: 0,
+    },
     canvases = {
     },
     fullscreen = false,
@@ -431,6 +437,20 @@ let ContextManager = (function () {
 
       return canvases[id].height;
     },
+    get_top = function (id) {
+      if (!id) {
+        id = "main";
+      }
+
+      return canvases[id].top;
+    },
+    get_left = function (id) {
+      if (!id) {
+        id = "main";
+      }
+
+      return canvases[id].left;
+    },
     get_z_index = function (id) {
       if (!id) {
         id = "main";
@@ -441,6 +461,10 @@ let ContextManager = (function () {
     set_context = function (id, new_context) {
       if (!id) {
         id = "main";
+      }
+
+      if (!new_context) {
+        new_context = canvases[id].canvas.getContext("2d");
       }
 
       canvases[id].context = new_context;
@@ -454,9 +478,11 @@ let ContextManager = (function () {
       canvases[id].context = canvases[id].canvas.getContext("2d");
       return canvases[id].canvas;
     },
-    resize = function (event, x_size, y_size) {
-      let width = x_size || max_width();
-      let height = y_size || max_height();
+    resize = function (event, left, top, x_size, y_size) {
+      top = top || 0;
+      left = left || 0;
+      let width = x_size || max_width()-left;
+      let height = y_size || max_height()-top;
       let index = null;
       let canvas = null;
 
@@ -464,9 +490,13 @@ let ContextManager = (function () {
         canvas = canvases[index];
         canvas.canvas.width = width;
         canvas.canvas.height = height;
+        canvas.canvas.style.top = top + "px";
+        canvas.canvas.style.left = left + "px";
         canvas.width = width;
         canvas.height = height;
-        set_canvas(canvas.id, canvas.canvas);
+        canvas.top = top;
+        canvas.left = left;
+        set_context(canvas.id);
       }
     },
     make_fullscreen = function () {
@@ -474,13 +504,16 @@ let ContextManager = (function () {
     },
     stop_fullscreen = function () {
       window.removeEventListener("resize", resize);
-      resize(null, width, height);
+      resize(null, 0, 0, width, height);
     },
     max_height = function () {
       return document.body.clientHeight;
     },
     max_width = function () {
       return document.body.clientWidth;
+    },
+    get_defined = function () {
+      return defined;
     },
     init = function (_manager) {
       console.log("ContextManager init.");
@@ -498,16 +531,21 @@ let ContextManager = (function () {
       stage = document.getElementById(stage_id);
       stage.style.overflow = "hidden";
 
+      defined.left = config.offset_x || 0;
+      defined.top = config.offset_y || 0;
+      defined.width = max_width();
+      defined.height = max_height();
+
       for (index in canvas_list) {
         canvas_name = canvas_list[index];
         canvases[canvas_name] = {
           id: config["canvas_" + canvas_name + "_id"] || canvas_name,
           canvas: document.createElement("canvas"),
           context: null,
-          width: 0,
-          height: 0,
-          top: config.offset_y || 0,
-          left: config.offset_x || 0,
+          left: defined.left,
+          top: defined.top,
+          width: defined.width,
+          height: defined.height,
           z_index: config["canvas_" + canvas_name + "_z_index"] || z_index,
         }
 
@@ -529,7 +567,13 @@ let ContextManager = (function () {
         make_fullscreen();
       }
 
-      resize(null, canvases["main"].width, canvases["main"].height);
+      resize(
+        null,
+        canvases["main"].left,
+        canvases["main"].top,
+        canvases["main"].width,
+        canvases["main"].height
+      );
     };
 
   return function () {
@@ -541,7 +585,10 @@ let ContextManager = (function () {
       set_canvas: set_canvas,
       get_width: get_width,
       get_height: get_height,
+      get_top: get_top,
+      get_left: get_left,
       get_z_index: get_z_index,
+      get_defined: get_defined,
       resize: resize,
     };
   };
