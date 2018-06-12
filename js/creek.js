@@ -1549,6 +1549,7 @@ let UIManager = (function () {
 
       let stage = document.getElementById("stage");
       stage.removeChild(element);
+      delete buttons[id];
 
       return button;
     },
@@ -1575,6 +1576,25 @@ let UIManager = (function () {
         button.on_state_change(manager, state);
       }
     },
+    set_button_position = function (id, x, y) {
+      let button = buttons[id];
+
+      if (!button) {
+        return null;
+      }
+
+      if (typeof x !== "string") {
+        x += "px";
+      }
+      if (typeof y !== "string") {
+        y += "px";
+      }
+
+      button.x = x;
+      button.y = y;
+      button.element.style.left = x;
+      button.element.style.top = y;
+    },
     get_buttons = function () {
       return buttons;
     },
@@ -1593,6 +1613,7 @@ let UIManager = (function () {
       remove_button: remove_button,
       set_button_text: set_button_text,
       set_button_state: set_button_state,
+      set_button_position: set_button_position,
     };
   };
 })();
