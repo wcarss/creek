@@ -1019,7 +1019,7 @@ let UIManager = (function () {
        *
        *   background: (optional) background for button
        *   style: (optional) custom-style
-       *   update: (optional) update-function taking manager manager
+       *   update: (optional) update-function taking manager
        * }
        */
 
@@ -1027,10 +1027,14 @@ let UIManager = (function () {
       let style_string = "position: absolute; display: inline-block; ";
       let z_index = manager.get('context').get_z_index('ui') + 10;
 
-      style_string += "left: " + button.x + "px; ";
-      style_string += "top: " + button.y + "px; ";
-      style_string += "width: " + button.width + "px; ";
-      style_string += "height: " + button.height + "px; ";
+      if (button.z_offset) {
+        z_index += button.z_offset;
+      }
+
+      style_string += "left: " + button.x + "; ";
+      style_string += "top: " + button.y + "; ";
+      style_string += "width: " + button.width + "; ";
+      style_string += "height: " + button.height + "; ";
       style_string += "background: " + button.background + "; ";
       style_string += "z-index: " + z_index + "; ";
 

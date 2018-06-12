@@ -46,10 +46,10 @@ let config_spec = {
 
       ui_manager.add_button({
         id: "map_cycle",
-        x: 15,
-        y: 50,
-        width: 80,
-        height: 30,
+        x: "15px",
+        y: "50px",
+        width: "80px",
+        height: "30px",
         text: "<p style='margin: 8px 0'>Next Map</p>",
         background: "black",
         style: 'color: white; text-align: center'
