@@ -94,12 +94,49 @@ let config_spec = {
         update: function (delta, manager) {
           this.text = "map: " + manager.get('map').get_current_map_id();
         },
-      }
+      };
+
+      this.buttons_text = {
+        id: "buttons_text",
+        text: "buttons: ",
+        x: 10,
+        y: 135,
+        offset_type: "camera",
+        font: "14px sans",
+        color: "white",
+        update: function (delta, manager) {
+          let control = manager.get('control');
+          let a = control.buttons('a_button');
+          let b = control.buttons('b_button');
+          let ul = control.buttons('d_pad_top_left');
+          let uc = control.buttons('d_pad_top');
+          let ur = control.buttons('d_pad_top_right');
+          let cl = control.buttons('d_pad_left');
+          let cc = control.buttons('d_pad_center');
+          let cr = control.buttons('d_pad_right');
+          let bl = control.buttons('d_pad_bottom_left');
+          let bc = control.buttons('d_pad_bottom');
+          let br = control.buttons('d_pad_bottom_right');
+          let select = control.buttons('select_button');
+          let start = control.buttons('start_button');
+          let controller = {
+            a: a, b: b, select: select, start: start,
+            d_pad: [
+              ul, uc, ur, cl, cc, cr, bl, bc, br
+            ]
+          };
+
+          this.text = "controller: " + JSON.stringify(controller);
+        }
+      };
+
+      manager.get('controller').use_controller('nes-mobile-landscape');
 
       entity_manager.add_text(this.xy_text);
       entity_manager.add_text(this.velo_text);
       entity_manager.add_text(this.map_text);
       entity_manager.add_text(this.data_load);
+      entity_manager.add_text(this.buttons_text);
     },
     "update": function (delta, manager) {
       let controls = manager.get('control'),
@@ -109,7 +146,7 @@ let config_spec = {
         player = player_manager.get_player(),
         lol_text = null;
 
-      if (controls.buttons('map_cycle') || controls.keys('KeyM')) {
+      if (controls.buttons('map_cycle') || controls.buttons('select_button') || controls.keys('KeyM')) {
         // should build a means to cycle that doesn't rely on hardcoding an if-ladder
         if (map_manager.get_current_map_id() === "map1") {
           map_manager.change_maps("map2");
@@ -121,7 +158,7 @@ let config_spec = {
           map_manager.change_maps("map1");
         }
         player_manager.modify_player('layer', map_manager.get_map().player_layer);
-      } else if (controls.keys('KeyL')) {
+      } else if (controls.keys('KeyL') || controls.buttons('b_button')) {
         if (this.loling) {
           entity_manager.remove_text("lol");
           this.loling = false;
@@ -145,7 +182,7 @@ let config_spec = {
           entity_manager.add_text(lol_text);
           this.loling = true;
         }
-      } else if (controls.keys('KeyZ')) {
+      } else if (controls.keys('KeyZ') || controls.buttons('a_button')) {
         if (performance.now() - this.last_particle_added > 200) {
           this.particle_count += 1;
           this.last_particle_added = performance.now();
@@ -211,17 +248,17 @@ let config_spec = {
         controls = manager.get('control'),
         entity_manager = manager.get('entity');
 
-      if (controls.keys('KeyW') || controls.keys('ArrowUp')) {
+      if (controls.keys('KeyW') || controls.keys('ArrowUp') || controls.buttons('d_pad_top') || controls.buttons('d_pad_top_left') || controls.buttons('d_pad_top_right')) {
         this.y_velocity -= this.y_acceleration * delta;
-      } else if (controls.keys('KeyS') || controls.keys('ArrowDown')) {
+      } else if (controls.keys('KeyS') || controls.keys('ArrowDown') || controls.buttons('d_pad_bottom') || controls.buttons('d_pad_bottom_left') || controls.buttons('d_pad_bottom_right')) {
         this.y_velocity += this.y_acceleration * delta;
       } else {
         this.y_velocity *= 0.8;
       }
 
-      if (controls.keys('KeyA') || controls.keys('ArrowLeft')) {
+      if (controls.keys('KeyA') || controls.keys('ArrowLeft') || controls.buttons('d_pad_left') || controls.buttons('d_pad_top_left') || controls.buttons('d_pad_bottom_left')) {
         this.x_velocity -= this.x_acceleration * delta;
-      } else if (controls.keys('KeyD') || controls.keys('ArrowRight')) {
+      } else if (controls.keys('KeyD') || controls.keys('ArrowRight') || controls.buttons('d_pad_right') || controls.buttons('d_pad_top_right') || controls.buttons('d_pad_bottom_right')) {
         this.x_velocity += this.x_acceleration * delta;
       } else {
         this.x_velocity *= 0.8;

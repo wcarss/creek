@@ -26,6 +26,7 @@ let GameManager = (function () {
         request: RequestManager(),
         resource: ResourceManager(),
         script: ScriptManager(),
+        controller: ControllerManager(),
         ui: UIManager(),
         data: DataManager(),
         time: TimeManager()
@@ -1002,6 +1003,408 @@ let ControlManager = (function () {
   };
 })();
 
+
+let ControllerManager = (function () {
+  let manager = null,
+    controllers = null,
+    controller_setup = function (manager) {
+      let context = manager.get('context');
+      let height = context.get_height();
+      let width = context.get_width();
+
+      return {
+        'nes-mobile-landscape': {
+          'components': {
+            'backer_left': {
+              id: "backer_left",
+              x: 0,
+              y: 0,
+              width: "160px",
+              height: height + "px",
+              text: "",
+              z_offset: -5,
+              background: "black", // (optional) background for button
+              style: null, // (optional) custom-style
+              update: null, // (optional) update-function taking manager
+            },
+            'backer_right': {
+              id: "backer_right",
+              x: (width-160) + "px",
+              y: 0,
+              width: "160px",
+              height: height + "px",
+              text: "",
+              z_offset: -5,
+              background: "black", // (optional) background for button
+              style: null, // (optional) custom-style
+              update: null, // (optional) update-function taking manager
+            },
+            'd_pad_top_left': {
+              id: "d_pad_top_left",
+              x: "20px",
+              y: "160px",
+              width: "40px",
+              height: "40px",
+              text: "",
+              background: "grey", // (optional) background for button
+              style: null, // (optional) custom-style
+              update: null, // (optional) update-function taking manager
+            },
+            'd_pad_top': {
+              id: "d_pad_top",
+              x: "60px",
+              y: "160px",
+              width: "40px",
+              height: "40px",
+              text: "",
+              background: "red", // (optional) background for button
+              style: null, // (optional) custom-style
+              update: null, // (optional) update-function taking manager
+            },
+            'd_pad_top_right': {
+              id: "d_pad_top_right",
+              x: "100px",
+              y: "160px",
+              width: "40px",
+              height: "40px",
+              text: "",
+              background: "gray", // (optional) background for button
+              style: null, // (optional) custom-style
+              update: null, // (optional) update-function taking manager
+            },
+            'd_pad_left': {
+              id: "d_pad_left",
+              x: "20px",
+              y: "200px",
+              width: "40px",
+              height: "40px",
+              text: "",
+              background: "red", // (optional) background for button
+              style: null, // (optional) custom-style
+              update: null, // (optional) update-function taking manager
+            },
+            'd_pad_center': {
+              id: "d_pad_center",
+              x: "60px",
+              y: "200px",
+              width: "40px",
+              height: "40px",
+              text: "",
+              background: "red", // (optional) background for button
+              style: null, // (optional) custom-style
+              update: null, // (optional) update-function taking manager
+            },
+            'd_pad_right': {
+              id: "d_pad_right",
+              x: "100px",
+              y: "200px",
+              width: "40px",
+              height: "40px",
+              text: "",
+              background: "red", // (optional) background for button
+              style: null, // (optional) custom-style
+              update: null, // (optional) update-function taking manager
+            },
+            'd_pad_bottom_left': {
+              id: "d_pad_bottom_left",
+              x: "20px",
+              y: "240px",
+              width: "40px",
+              height: "40px",
+              text: "",
+              background: "grey", // (optional) background for button
+              style: null, // (optional) custom-style
+              update: null, // (optional) update-function taking manager
+            },
+            'd_pad_bottom': {
+              id: "d_pad_bottom",
+              x: "60px",
+              y: "240px",
+              width: "40px",
+              height: "40px",
+              text: "",
+              background: "red", // (optional) background for button
+              style: null, // (optional) custom-style
+              update: null, // (optional) update-function taking manager
+            },
+            'd_pad_bottom_right': {
+              id: "d_pad_bottom_right",
+              x: "100px",
+              y: "240px",
+              width: "40px",
+              height: "40px",
+              text: "",
+              background: "grey", // (optional) background for button
+              style: null, // (optional) custom-style
+              update: null, // (optional) update-function taking manager
+            },
+            'b_button': {
+              id: "b_button",
+              x: (width-150) + "px",
+              y: "210px",
+              width: "60px",
+              height: "60px",
+              text: "&nbsp;B",
+              background: "red", // (optional) background for button
+              style: "font: 48px arial; color: white;", // (optional) custom-style
+              update: null, // (optional) update-function taking manager
+            },
+            'a_button': {
+              id: "a_button",
+              x: (width-80) + "px",
+              y: "170px",
+              width: "60px",
+              height: "60px",
+              text: "&nbsp;A",
+              background: "red", // (optional) background for button
+              style: "font: 48px arial; color: white;", // (optional) custom-style
+              update: null, // (optional) update-function taking manager
+            },
+            'select': {
+              id: "select_button",
+              x: "40px",
+              y: "50px",
+              width: "80px",
+              height: "20px",
+              text: "&nbsp;&nbsp;SELECT",
+              background: "gray", // (optional) background for button
+              style: "font-family: Arial; color: white; padding-top: 4px;", // (optional) custom-style
+              update: null, // (optional) update-function taking manager
+            },
+            'start': {
+              id: "start_button",
+              x: (width-120)+"px",
+              y: "50px",
+              width: "80px",
+              height: "20px",
+              text: "&nbsp;&nbsp;&nbsp;START",
+              background: "gray", // (optional) background for button
+              style: "font-family: Arial; color: white; padding-top: 4px;", // (optional) custom-style
+              update: null, // (optional) update-function taking manager
+            },
+          }
+        },
+        'nes-mobile-portrait': {
+          'components': {
+            'backer_bottom': {
+              id: "backer_bottom",
+              x: 0,
+              y: (height-160) + "px",
+              width: width + "px",
+              height: "160px",
+              text: "",
+              z_offset: -5,
+              background: "black", // (optional) background for button
+              style: null, // (optional) custom-style
+              update: null, // (optional) update-function taking manager
+            },
+            'd_pad_top_left': {
+              id: "d_pad_top_left",
+              x: "20px",
+              y: (height-140) + "px",
+              width: "40px",
+              height: "40px",
+              text: "",
+              background: "grey", // (optional) background for button
+              style: null, // (optional) custom-style
+              update: null, // (optional) update-function taking manager
+            },
+            'd_pad_top': {
+              id: "d_pad_top",
+              x: "60px",
+              y: (height-140) + "px",
+              width: "40px",
+              height: "40px",
+              text: "",
+              background: "red", // (optional) background for button
+              style: null, // (optional) custom-style
+              update: null, // (optional) update-function taking manager
+            },
+            'd_pad_top_right': {
+              id: "d_pad_top_right",
+              x: "100px",
+              y: (height - 140) + "px",
+              width: "40px",
+              height: "40px",
+              text: "",
+              background: "grey", // (optional) background for button
+              style: null, // (optional) custom-style
+              update: null, // (optional) update-function taking manager
+            },
+            'd_pad_left': {
+              id: "d_pad_left",
+              x: "20px",
+              y: (height - 100) + "px",
+              width: "40px",
+              height: "40px",
+              text: "",
+              background: "red", // (optional) background for button
+              style: null, // (optional) custom-style
+              update: null, // (optional) update-function taking manager
+            },
+            'd_pad_center': {
+              id: "d_pad_center",
+              x: "60px",
+              y: (height - 100) + "px",
+              width: "40px",
+              height: "40px",
+              text: "",
+              background: "red", // (optional) background for button
+              style: null, // (optional) custom-style
+              update: null, // (optional) update-function taking manager
+            },
+            'd_pad_right': {
+              id: "d_pad_right",
+              x: "100px",
+              y: (height - 100) + "px",
+              width: "40px",
+              height: "40px",
+              text: "",
+              background: "red", // (optional) background for button
+              style: null, // (optional) custom-style
+              update: null, // (optional) update-function taking manager
+            },
+            'd_pad_bottom_left': {
+              id: "d_pad_bottom_left",
+              x: "20px",
+              y: (height - 60) + "px",
+              width: "40px",
+              height: "40px",
+              text: "",
+              background: "grey", // (optional) background for button
+              style: null, // (optional) custom-style
+              update: null, // (optional) update-function taking manager
+            },
+            'd_pad_bottom': {
+              id: "d_pad_bottom",
+              x: "60px",
+              y: (height - 60) + "px",
+              width: "40px",
+              height: "40px",
+              text: "",
+              background: "red", // (optional) background for button
+              style: null, // (optional) custom-style
+              update: null, // (optional) update-function taking manager
+            },
+            'd_pad_bottom_right': {
+              id: "d_pad_bottom_right",
+              x: "100px",
+              y: (height - 60) + "px",
+              width: "40px",
+              height: "40px",
+              text: "",
+              background: "grey", // (optional) background for button
+              style: null, // (optional) custom-style
+              update: null, // (optional) update-function taking manager
+            },
+            'b_button': {
+              id: "b_button",
+              x: "220px",
+              y: (height - 90) + "px",
+              width: "60px",
+              height: "60px",
+              text: "&nbsp;B ",
+              background: "red", // (optional) background for button
+              style: "font: 48px arial; color: white;", // (optional) custom-style
+              update: null, // (optional) update-function taking manager
+            },
+            'a_button': {
+              id: "a_button",
+              x: "290px",
+              y: (height - 130) + "px",
+              width: "60px",
+              height: "60px",
+              text: "&nbsp;A",
+              background: "red", // (optional) background for button
+              style: "font: 48px arial; color: white;", // (optional) custom-style
+              update: null, // (optional) update-function taking manager
+            },
+            'select': {
+              id: "select_button",
+              x: "150px",
+              y: (height - 110) + "px",
+              width: "60px",
+              height: "20px",
+              text: "&nbsp;SELECT",
+              background: "grey", // (optional) background for button
+              style: "font: 13px Arial; font-weight: bold; color: white; padding-top: 4.5px;", // (optional) custom-style
+              update: null, // (optional) update-function taking manager
+            },
+            'start': {
+              id: "start_button",
+              x: "150px",
+              y: (height - 65) + "px",
+              width: "60px",
+              height: "20px",
+              text: "&nbsp;&nbsp;START",
+              background: "grey", // (optional) background for button
+              // old style: "font-family: Arial; color: white; padding-top: 4px;", // (optional) custom-style
+              style: "font: 13px Arial; font-weight: bold; color: white; padding-top: 4.5px;", // (optional) custom-style
+              update: null, // (optional) update-function taking manager
+            },
+          }
+        },
+      };
+    },
+    active = {};
+
+  let clear_controller = function () {
+      let index = null,
+        ui = manager.get('ui');
+
+      for (index in active.buttons) {
+        ui.remove_button(active.buttons[index].id);
+      }
+    },
+    add_controller = function (controller) {
+      let ui = manager.get('ui'),
+        component = null,
+        index = null;
+
+      /* button should be like: {
+       *   id: a unique id to refer to this button
+       *   x: x-coord from left
+       *   y: y-coord from top
+       *   width: button-width
+       *   height: button-height
+       *   text: text for the button to display
+       *
+       *   background: (optional) background for button
+       *   style: (optional) custom-style
+       *   update: (optional) update-function taking manager
+       * }
+       */
+
+      active.buttons = {};
+      for (index in controller.components) {
+        component = controller.components[index];
+        active.buttons[component.id] = component;
+        ui.add_button(component);
+      }
+    },
+    use_controller = function (id) {
+      if (!controllers[id]) {
+        return;
+      }
+
+      clear_controller();
+      add_controller(controllers[id]);
+    };
+
+  let init = function (_manager) {
+    manager = _manager;
+    controllers = controller_setup(manager);
+  };
+
+  return function () {
+    return {
+      init: init,
+      use_controller: use_controller,
+      add_controller: add_controller,
+      clear_controller: clear_controller,
+    };
+  };
+})();
 
 
 let UIManager = (function () {
