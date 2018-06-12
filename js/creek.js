@@ -1061,6 +1061,13 @@ let ControllerManager = (function () {
 
       return {
         'nes-mobile-landscape': {
+          'id': 'nes-mobile-landscape',
+          'dimensions': {
+            x: 160,
+            y: 0,
+            right: -160,
+            bottom: 0,
+          },
           'components': {
             'backer_left': {
               id: "backer_left",
@@ -1232,6 +1239,13 @@ let ControllerManager = (function () {
           }
         },
         'nes-mobile-portrait': {
+          'id': 'nes-mobile-portrait',
+          'dimensions': {
+            x: 0,
+            y: 0,
+            right: 0,
+            bottom: -160,
+          },
           'components': {
             'backer_bottom': {
               id: "backer_bottom",
@@ -1397,30 +1411,53 @@ let ControllerManager = (function () {
 
   let clear_controller = function () {
       let index = null,
-        ui = manager.get('ui');
+        ui = manager.get('ui'),
+        other_buttons = null,
+        button = null,
+        dimensions = null,
+        context = manager.get('context'),
+        camera = manager.get('camera'),
+        defined = context.get_defined();
+
+      if (Object.keys(active).length === 0) {
+        return;
+      }
 
       for (index in active.buttons) {
         ui.remove_button(active.buttons[index].id);
       }
+
+      dimensions = controllers[active.id].dimensions;
+
+      other_buttons = ui.get_buttons();
+      for (index in other_buttons) {
+        button = other_buttons[index];
+
+        ui.set_button_position(
+          button.id,
+          parseInt(button.x) - controllers[active.id].dimensions.x,
+          parseInt(button.y) - controllers[active.id].dimensions.y
+        );
+      }
+
+      context.resize(
+        null, // deprectated slot for event object
+        defined.left,
+        defined.top,
+        defined.width,
+        defined.height
+      );
+      camera.resize(
+        context.get_width(),
+        context.get_height()
+      );
+
+      active = {};
     },
-    add_controller = function (controller) {
+    activate_controller = function (controller) {
       let ui = manager.get('ui'),
         component = null,
         index = null;
-
-      /* button should be like: {
-       *   id: a unique id to refer to this button
-       *   x: x-coord from left
-       *   y: y-coord from top
-       *   width: button-width
-       *   height: button-height
-       *   text: text for the button to display
-       *
-       *   background: (optional) background for button
-       *   style: (optional) custom-style
-       *   update: (optional) update-function taking manager
-       * }
-       */
 
       active.buttons = {};
       for (index in controller.components) {
@@ -1428,14 +1465,53 @@ let ControllerManager = (function () {
         active.buttons[component.id] = component;
         ui.add_button(component);
       }
+      active.id = controller.id;
     },
-    use_controller = function (id) {
+    change_to_controller = function (id) {
+      let context = manager.get('context');
+      let camera = manager.get('camera');
+      let ui = manager.get('ui');
+      let other_buttons = ui.get_buttons();
+      let dimensions = null;
+      let index = null;
+      let button = null;
+
       if (!controllers[id]) {
         return;
       }
 
       clear_controller();
-      add_controller(controllers[id]);
+      activate_controller(controllers[id]);
+
+      dimensions = controllers[id].dimensions;
+      context.resize(
+        null, // deprectated slot for event object
+        context.get_left() + dimensions.x,
+        context.get_top() + dimensions.y,
+        (context.get_width() + dimensions.right) - (context.get_left() + dimensions.x),
+        (context.get_height() + dimensions.bottom) - (context.get_top() + dimensions.y)
+      );
+      camera.resize(
+        context.get_width(),
+        context.get_height()
+      );
+
+      for (index in other_buttons) {
+        button = other_buttons[index];
+        if (!active.buttons[index]) {
+          ui.set_button_position(
+            button.id,
+            parseInt(button.x) + dimensions.x,
+            parseInt(button.y) + dimensions.y
+          );
+        }
+      }
+    },
+    get_active = function () {
+      return active;
+    },
+    get_controller = function (id) {
+      return controllers[id];
     };
 
   let init = function (_manager) {
@@ -1446,9 +1522,11 @@ let ControllerManager = (function () {
   return function () {
     return {
       init: init,
-      use_controller: use_controller,
-      add_controller: add_controller,
+      change_to_controller: change_to_controller,
+      activate_controller: activate_controller,
       clear_controller: clear_controller,
+      get_active: get_active,
+      get_controller: get_controller,
     };
   };
 })();

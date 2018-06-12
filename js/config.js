@@ -12,6 +12,7 @@ let config_spec = {
 
       this.particle_count = 0;
       this.last_particle_added = performance.now();
+      this.last_controller_cycle = performance.now();
       this.player = player_manager.get_player();
 
       let data_load_request = request_manager.get("test.json");
@@ -51,6 +52,17 @@ let config_spec = {
         width: "80px",
         height: "30px",
         text: "<p style='margin: 8px 0'>Next Map</p>",
+        background: "black",
+        style: 'color: white; text-align: center'
+      });
+
+      ui_manager.add_button({
+        id: "controller_cycle",
+        x: "105px",
+        y: "50px",
+        width: "80px",
+        height: "30px",
+        text: "<p style='margin: 8px 0'>Controller</p>",
         background: "black",
         style: 'color: white; text-align: center'
       });
@@ -130,7 +142,6 @@ let config_spec = {
         }
       };
 
-      manager.get('controller').use_controller('nes-mobile-landscape');
 
       entity_manager.add_text(this.xy_text);
       entity_manager.add_text(this.velo_text);
@@ -144,7 +155,22 @@ let config_spec = {
         map_manager = manager.get('map'),
         player_manager = manager.get('player'),
         player = player_manager.get_player(),
+        controller_manager = manager.get('controller'),
+        active_controller = null,
         lol_text = null;
+
+      if ((controls.buttons('controller_cycle') || controls.buttons('start_button')) && (performance.now() - this.last_controller_cycle) > 300) {
+        active_controller = controller_manager.get_active();
+        if (Object.keys(active_controller).length === 0) {
+          controller_manager.change_to_controller('nes-mobile-portrait');
+        } else if (active_controller.id === 'nes-mobile-landscape') {
+          controller_manager.clear_controller();
+        } else if (active_controller.id === 'nes-mobile-portrait') {
+          controller_manager.change_to_controller('nes-mobile-landscape');
+        }
+        this.last_controller_cycle = performance.now();
+        console.log("controls.buttons: " + controls.buttons('controller_cycle'));
+      }
 
       if (controls.buttons('map_cycle') || controls.buttons('select_button') || controls.keys('KeyM')) {
         // should build a means to cycle that doesn't rely on hardcoding an if-ladder
