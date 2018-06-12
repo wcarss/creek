@@ -1501,23 +1501,29 @@ let UIManager = (function () {
       button.hover_at = 0;
       button.down_at = 0;
 
-      button.on_enter = function () {
+      button.on_enter = function (event) {
         control_manager.set_button(button.id, 'hover', true);
       };
-      button.on_out = function () {
+      button.on_out = function (event) {
         control_manager.set_button(button.id, 'hover', false);
       };
-      button.on_down = function () {
+      button.on_down = function (event) {
         control_manager.set_button(button.id, 'down', true);
+        button.element.setPointerCapture(event.pointerId);
       };
-      button.on_up = function () {
+      button.on_cancel = function (event) {
+        control_manager.set_button(button.id, 'down', false);
+        button.element.releasePointerCapture(event.pointerId);
+      };
+      button.on_up = function (event) {
         control_manager.set_button(button.id, 'down', false);
       };
 
-      element.addEventListener('mouseenter', button.on_enter);
-      element.addEventListener('mouseout', button.on_out);
-      element.addEventListener('mousedown', button.on_down);
-      element.addEventListener('mouseup', button.on_up);
+      element.addEventListener('pointerenter', button.on_enter);
+      element.addEventListener('pointerout', button.on_out);
+      element.addEventListener('pointerdown', button.on_down);
+      element.addEventListener('pointercancel', button.on_cancel);
+      element.addEventListener('pointerup', button.on_up);
 
       let stage = document.getElementById("stage");
       stage.appendChild(element);
@@ -1535,10 +1541,11 @@ let UIManager = (function () {
       }
 
       let element = button.element;
-      element.removeEventListener('mouseenter', button.on_enter);
-      element.removeEventListener('mouseout', button.on_out);
-      element.removeEventListener('mousedown', button.on_down);
-      element.removeEventListener('mouseup', button.on_up);
+      element.removeEventListener('pointerenter', button.on_enter);
+      element.removeEventListener('pointerout', button.on_out);
+      element.removeEventListener('pointerdown', button.on_down);
+      element.removeEventListener('pointercancel', button.on_cancel);
+      element.removeEventListener('pointerup', button.on_up);
 
       let stage = document.getElementById("stage");
       stage.removeChild(element);
