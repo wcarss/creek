@@ -142,6 +142,34 @@ let config_spec = {
         }
       };
 
+      let setup_controls = function (event) {
+        let ctx = manager.get('context');
+        let ctr = manager.get('controller');
+
+        if (navigator.maxTouchPoints !== 0) {
+          if ((ctx.max_width() > ctx.max_height()) || window.orientation === 90 || window.orientation === -90) {
+            ctr.change_to_controller('nes-mobile-landscape');
+          } else {
+            ctr.change_to_controller('nes-mobile-portrait');
+          }
+        } else if (ctr.get_active().id) {
+            ctr.change_to_controller(ctr.get_active().id);
+        }
+      };
+
+      window.addEventListener('resize', function () {
+        console.log("calling resize in response to resize event");
+        manager.get('context').resize();
+        setup_controls();
+      });
+      window.addEventListener('deviceorientation', function () {
+        if (this.last_width !== manager.get('context').max_width()) {
+          this.last_width = manager.get('context').max_width();
+          manager.get('context').resize();
+          setup_controls();
+        }
+      });
+      setup_controls();
 
       entity_manager.add_text(this.xy_text);
       entity_manager.add_text(this.velo_text);
