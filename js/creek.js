@@ -1055,8 +1055,7 @@ let ControlManager = (function () {
 
 let ControllerManager = (function () {
   let manager = null,
-    controllers = null,
-    controller_setup = function (manager) {
+    controllers = function (id) {
       let context = manager.get('context');
       let height = context.max_height();
       let width = context.max_width();
@@ -1407,7 +1406,7 @@ let ControllerManager = (function () {
             },
           }
         },
-      };
+      }[id];
     },
     active = {};
 
@@ -1429,7 +1428,7 @@ let ControllerManager = (function () {
         ui.remove_button(active.buttons[index].id);
       }
 
-      dimensions = controllers[active.id].dimensions;
+      dimensions = controllers(active.id).dimensions;
 
       other_buttons = ui.get_buttons();
       for (index in other_buttons) {
@@ -1437,8 +1436,8 @@ let ControllerManager = (function () {
 
         ui.set_button_position(
           button.id,
-          parseInt(button.x) - controllers[active.id].dimensions.x,
-          parseInt(button.y) - controllers[active.id].dimensions.y
+          parseInt(button.x) - controllers(active.id).dimensions.x,
+          parseInt(button.y) - controllers(active.id).dimensions.y
         );
       }
 
@@ -1478,14 +1477,14 @@ let ControllerManager = (function () {
       let index = null;
       let button = null;
 
-      if (!controllers[id]) {
+      if (!controllers(id)) {
         return;
       }
 
       clear_controller();
-      activate_controller(controllers[id]);
+      activate_controller(controllers(id));
 
-      dimensions = controllers[id].dimensions;
+      dimensions = controllers(id).dimensions;
       context.resize(
         null, // deprectated slot for event object
         context.get_left() + dimensions.x,
@@ -1513,12 +1512,11 @@ let ControllerManager = (function () {
       return active;
     },
     get_controller = function (id) {
-      return controllers[id];
+      return controllers(id);
     };
 
   let init = function (_manager) {
     manager = _manager;
-    controllers = controller_setup(manager);
   };
 
   return function () {
