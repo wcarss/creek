@@ -1493,8 +1493,8 @@ let ControllerManager = (function () {
         (context.max_height() + dimensions.bottom) - (context.get_top() + dimensions.y)
       );
       camera.resize(
-        context.max_width(),
-        context.max_height()
+        context.get_width(),
+        context.get_height()
       );
 
       for (index in other_buttons) {
