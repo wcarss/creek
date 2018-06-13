@@ -1472,7 +1472,7 @@ let ControllerManager = (function () {
       let context = manager.get('context');
       let camera = manager.get('camera');
       let ui = manager.get('ui');
-      let other_buttons = ui.get_buttons();
+      let other_buttons = null;
       let dimensions = null;
       let index = null;
       let button = null;
@@ -1497,6 +1497,7 @@ let ControllerManager = (function () {
         context.get_height()
       );
 
+      other_buttons = ui.get_buttons();
       for (index in other_buttons) {
         button = other_buttons[index];
         if (!active.buttons[index]) {
@@ -1554,13 +1555,23 @@ let UIManager = (function () {
       let element = document.createElement("div");
       let style_string = "position: absolute; display: inline-block; ";
       let z_index = manager.get('context').get_z_index('ui') + 10;
+      let top = manager.get('context').get_top();
+      let left = manager.get('context').get_left();
+      let controller = manager.get('controller');
+      if (controller.get_active().id) {
+        if (!controller.get_active().buttons[button.id]) {
+          button.x = parseInt(button.x) + left;
+          button.y = parseInt(button.y) + top;
+        }
+      }
+      let controller_button = manager.get('controller').get_active()
 
       if (button.z_offset) {
         z_index += button.z_offset;
       }
 
-      style_string += "left: " + button.x + "; ";
-      style_string += "top: " + button.y + "; ";
+      style_string += "left: " + parseInt(button.x) + "px; ";
+      style_string += "top: " + parseInt(button.y) + "px; ";
       style_string += "width: " + button.width + "; ";
       style_string += "height: " + button.height + "; ";
       style_string += "background: " + button.background + "; ";
