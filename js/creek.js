@@ -507,10 +507,10 @@ let ContextManager = (function () {
       resize(null, 0, 0, width, height);
     },
     max_height = function () {
-      return document.body.clientHeight;
+      return window.innerHeight;
     },
     max_width = function () {
-      return document.body.clientWidth;
+      return window.innerWidth;
     },
     get_defined = function () {
       return defined;
@@ -585,6 +585,8 @@ let ContextManager = (function () {
       set_canvas: set_canvas,
       get_width: get_width,
       get_height: get_height,
+      max_width: max_width,
+      max_height: max_height,
       get_top: get_top,
       get_left: get_left,
       get_z_index: get_z_index,
@@ -1056,8 +1058,8 @@ let ControllerManager = (function () {
     controllers = null,
     controller_setup = function (manager) {
       let context = manager.get('context');
-      let height = context.get_height();
-      let width = context.get_width();
+      let height = context.max_height();
+      let width = context.max_width();
 
       return {
         'nes-mobile-landscape': {
@@ -1444,8 +1446,8 @@ let ControllerManager = (function () {
         null, // deprectated slot for event object
         defined.left,
         defined.top,
-        defined.width,
-        defined.height
+        context.max_width()-defined.left,
+        context.max_height()-defined.top,
       );
       camera.resize(
         context.get_width(),
@@ -1488,12 +1490,12 @@ let ControllerManager = (function () {
         null, // deprectated slot for event object
         context.get_left() + dimensions.x,
         context.get_top() + dimensions.y,
-        (context.get_width() + dimensions.right) - (context.get_left() + dimensions.x),
-        (context.get_height() + dimensions.bottom) - (context.get_top() + dimensions.y)
+        (context.max_width() + dimensions.right) - (context.get_left() + dimensions.x),
+        (context.max_height() + dimensions.bottom) - (context.get_top() + dimensions.y)
       );
       camera.resize(
-        context.get_width(),
-        context.get_height()
+        context.max_width(),
+        context.max_height()
       );
 
       for (index in other_buttons) {
