@@ -1744,6 +1744,7 @@ let MapManager = (function () {
 
       // actually change the map
       current_map_id = map_id;
+      manager.get('render').clear_all();
       manager.get('entity').setup_entities();
 
       // setup actions in new map (if any)
@@ -2280,6 +2281,8 @@ let EntityManager = (function () {
       if (to_remove !== -1) {
         texts.splice(to_remove, 1);
       }
+
+      manager.get('render').clear_context("ui");
     },
     collide = function (entity) {
       let collisions = [],
@@ -2878,6 +2881,17 @@ let RenderManager = (function () {
     resources = null,
     stored_count = null,
 
+    clear_context = function (id) {
+      let context = context_manager.get_context(id),
+        width = context_manager.get_width(id),
+        height = context_manager.get_height(id);
+
+      context.clearRect(0, 0, width, height);
+    },
+    clear_all = function () {
+      clear_context("main");
+      clear_context("ui");
+    },
     draw = function (tile, context, delta, offset) {
       let resource = resources.get_image(tile.img),
         source_x = 0, source_y = 0, source_width = 0, source_height = 0,
@@ -3010,6 +3024,8 @@ let RenderManager = (function () {
       init: init,
       next_frame: next_frame,
       lead_in: lead_in,
+      clear_context: clear_context,
+      clear_all: clear_all,
     };
   };
 })();
