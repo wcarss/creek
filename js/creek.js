@@ -1572,8 +1572,8 @@ let UIManager = (function () {
 
       style_string += "left: " + parseInt(button.x) + "px; ";
       style_string += "top: " + parseInt(button.y) + "px; ";
-      style_string += "width: " + button.width + "; ";
-      style_string += "height: " + button.height + "; ";
+      style_string += "width: " + parseInt(button.width) + "px; ";
+      style_string += "height: " + parseInt(button.height) + "px; ";
       style_string += "background: " + button.background + "; ";
       style_string += "z-index: " + z_index + "; ";
 
